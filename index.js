@@ -214,8 +214,16 @@ client.on("interactionCreate", async (interaction) => {
 
 			let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
 			let VCPermissions = await VC.permissionsFor(banUserid.id).serialize()
-			await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:!VCPermissions.VIEW_CHANNEL})
-			await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${!VCPermissions.VIEW_CHANNEL?"Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+			console.log(typeof(VCPermissions.VIEW_CHANNEL))
+			
+			let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
+
+			console.log(viewchannel)
+			await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:viewchannel})
+			
+
+			
+			await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
 			
 			return 
 		}
