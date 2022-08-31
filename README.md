@@ -1,6 +1,5 @@
 # Discord 語音包廂 BOT 
 ## 概述
--------------
 想要在Discord裡面有個不被打擾或是不想給別人加入的語音頻道
 但是又不想麻煩管理員為了你而特別開設頻道?
 或是語音地區出問題? 想更換但管理員都不再線上
@@ -34,6 +33,5 @@ Bot 使用 Nodejs  架構
 
 
 ## 大大大感謝
--------------
 
 參考來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
