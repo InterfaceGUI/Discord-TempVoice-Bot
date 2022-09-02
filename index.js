@@ -158,6 +158,7 @@ async function MoveUser(userid,Member) {
 
 async function RemoveVTChannels(UserID,VCID){
 
+	delete removeTimeouts2[UserID]
 	delete removeTimeouts[UserID]
 	let VC = guild.channels.cache.find(channel => channel.id == VCID)
 	if (typeof VC !== 'undefined') VC.delete().catch(() => {console.log('VC delete error')})
@@ -192,6 +193,7 @@ async function CreatVTChannels(UserID){
 	await newTempVoiceChannel.lockPermissions().catch(console.error);
 	await newTempVoiceChannel.permissionOverwrites.edit(UserID,{SPEAK:true,CONNECT:true,VIEW_CHANNEL:true})
 	let msg = await newTempVoiceChannel.send(await CreateControlMsg(UserID,User.username))
+
 	//console.log("newVC",newTempVoiceChannel)
 	await db.put(`tempVcIdKey_${UserID}`, newTempVoiceChannel.id).catch(err => {console.log('kv save error!')})
 	await db.put(`tempmsgIdKey_${UserID}`, msg.id).catch(err => {console.log('kv save error!')})
@@ -221,6 +223,7 @@ client.on("interactionCreate", async (interaction) => {
 		{
 			
 			let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
+
 			if (kickUser.voice.channelId == VC.id) await kickUser.voice.disconnect()
 
 			let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
@@ -229,7 +232,7 @@ client.on("interactionCreate", async (interaction) => {
 			
 			let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
 
-			console.log(viewchannel)
+			console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:viewchannel})
 			
 
@@ -253,12 +256,15 @@ client.on("interactionCreate", async (interaction) => {
 			let newUser = guild.members.cache.find(user => user.id == interaction.values[0])
 			console.log(`${newUser.nickname?newUser.nickname:newUser.user.username}'s VC`)
 
+			await VC.permissionOverwrites.edit(user.id,{VIEW_CHANNEL:null})
+
 			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
-			Controlmsg.edit(await CreateControlMsg(newUser.id,newUser.user.username))
+			let VCPermissions = await VC.permissionsFor(config.DefaultRoleID).serialize()
+			Controlmsg.edit(await CreateControlMsg(newUser.id,newUser.user.username,VCPermissions))
 			if (removeTimeouts[user.id]) {
 				clearTimeout(removeTimeouts[user.id])
 				delete removeTimeouts[userid]
-				let Controlmsg = await Vc.messages.fetch(`${removeTimeoutsMsg[userid]}`)
+				let Controlmsg = await VC.messages.fetch(`${removeTimeoutsMsg[userid]}`)
 				await Controlmsg.delete().catch(() => {})
 			}
 			
@@ -322,11 +328,13 @@ client.on("interactionCreate", async (interaction) => {
 			const row = new MessageActionRow()
 			
 			if (banUser.size  >= 1) {
+
 				var options = []
 				var index = 0
 				banUser.forEach((user) => {
 					index += 1
 					if(index <= 25) {
+						if (user.id == interaction.user.id) return
 						options.push({
 							label: user.user.username,
 							description: user.nickname?user.nickname:user.user.username,
@@ -334,7 +342,8 @@ client.on("interactionCreate", async (interaction) => {
 						})
 					}
 				});
-				
+				if (options.length < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+				console.log(options.size)
 				let msmComponents = new MessageSelectMenu()
 				.setCustomId('select_ban')
 				.setPlaceholder('Nothing selected')
@@ -369,28 +378,50 @@ client.on("interactionCreate", async (interaction) => {
 
 		if (interaction.customId === "button_lock") {
 
+			await interaction.deferReply({ephemeral: true })
+			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
+			var VcPermissions = VCPermissions
+			
 			//console.log(VCPermissions)
+			VcPermissions.CONNECT = !VcPermissions.CONNECT
 			await VC.permissionOverwrites.edit(user.id,{CONNECT:true})
-			await VC.permissionOverwrites.edit(config.DefaultRoleID,{CONNECT:!VCPermissions.CONNECT})
-			return interaction.reply({content: `Connect : ${!VCPermissions.CONNECT}`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			await VC.permissionOverwrites.edit(config.DefaultRoleID,{CONNECT:VcPermissions.CONNECT})
+			
+			
+			await Controlmsg.edit(await CreateControlMsg(user.id ,user.username ,VcPermissions ))
+			await interaction.editReply({content: `Now everyone **can${!VcPermissions.CONNECT?"not** ":"** "}connect to this channel.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			return
 			
 		}
 		else if (interaction.customId === "button_hide") 
 		{
-			
+			await interaction.deferReply({ephemeral: true })
+			var VcPermissions = VCPermissions
+			VcPermissions.VIEW_CHANNEL = ! VcPermissions.VIEW_CHANNEL
+			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 			//console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(user.id,{VIEW_CHANNEL:true})
-			await VC.permissionOverwrites.edit(config.DefaultRoleID,{VIEW_CHANNEL:!VCPermissions.VIEW_CHANNEL})
-			return interaction.reply({content: `Everyone can ${VCPermissions.VIEW_CHANNEL?"not ":""}see this channel now.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
-			
+			await VC.permissionOverwrites.edit(config.DefaultRoleID,{VIEW_CHANNEL:VcPermissions.VIEW_CHANNEL})
+
+			await Controlmsg.edit(await CreateControlMsg(user.id ,user.username ,VcPermissions ))
+			await interaction.editReply({content: `Now everyone **can${!VcPermissions.VIEW_CHANNEL?"not** ":"** "}see this channel.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			return
 		}
 		else if (interaction.customId === "button_mute") 
 		{
+			await interaction.deferReply({ephemeral: true })
+
+			var VcPermissions = VCPermissions
+			VcPermissions.SPEAK = ! VcPermissions.SPEAK
+			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 			
 			//console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(user.id,{SPEAK:true})
-			await VC.permissionOverwrites.edit(config.DefaultRoleID,{SPEAK:!VCPermissions.SPEAK})
-			return interaction.reply({content: `SPEAK : ${!VCPermissions.SPEAK}`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			await VC.permissionOverwrites.edit(config.DefaultRoleID,{SPEAK:VcPermissions.SPEAK})
+			
+			await Controlmsg.edit(await CreateControlMsg(user.id ,user.username ,VcPermissions ))
+			await interaction.editReply({content: `Now new join user **can${VcPermissions.SPEAK?"**":"not**"} Speak.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			return
 		}
 		else if (interaction.customId === "button_limit") 
 		{
@@ -434,13 +465,14 @@ client.on("interactionCreate", async (interaction) => {
 			let kickUser = VC.members
 			
 			//console.log(banUser)
-			if (kickUser.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (kickUser.size <= 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
-			if (kickUser.size  >= 1) {
+			if (kickUser.size  > 1) {
 				var options = []
 				var index = 0
 				kickUser.forEach((user) => {
+					if (user.id == interaction.user.id) return
 					index += 1
 					if(index <= 25) {
 						options.push({
@@ -485,19 +517,21 @@ client.on("interactionCreate", async (interaction) => {
 
 			let finedUser = VC.members
 			//console.log(banUser)
-			if (finedUser.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (finedUser.size <= 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
-			if (finedUser.size  >= 1) {
+			if (finedUser.size  > 1) {
 				var options = []
 				var index = 0
 				finedUser.forEach((user) => {
+					
 					index += 1
 					if(index <= 25) {
 						options.push({
 							label: user.user.username,
 							description: user.nickname?user.nickname:user.user.username,
 							value: user.id,
+							default:user.id == interaction.user.id,
 						})
 					}
 				});
@@ -531,9 +565,10 @@ client.on("interactionCreate", async (interaction) => {
 				let cmsg = await Vc.send({embeds: [embeds]})
 				setTimeout(RemoveMsg,5000,cmsg)
 				let Controlmsg = await Vc.messages.fetch(`${removeTimeoutsMsg2[user.id]}`)
-				await Controlmsg.delete().catch(() => {})
 				clearTimeout(removeTimeouts2[user.id])
 				delete removeTimeouts2[user.id]
+				await Controlmsg.delete().catch(err => {console.log(err)})
+				
 				
 			}else{
 
@@ -637,22 +672,23 @@ client.on("interactionCreate", async (interaction) => {
 })
 
 
-async function CreateControlMsg(UserID,userName){
+async function CreateControlMsg(UserID,userName, Permissinos = {"VIEW_CHANNEL": false,"CONNECT": true,"SPEAK": true,}){
 	
+
 	let button1 = new MessageButton()
 		.setStyle("PRIMARY")
-		.setEmoji("🔒")
-		.setLabel("Lock/Unlock          ")
+		.setEmoji(`${Permissinos.CONNECT?"🔒":"🔓"}`)
+		.setLabel(`${Permissinos.CONNECT?"Lock":"Unlock"}`)
 		.setCustomId("button_lock")
 	let button2 = new MessageButton()
 		.setStyle("PRIMARY")
-		.setEmoji("🔍")
-		.setLabel("Hide/Show")
+		.setEmoji(`${Permissinos.VIEW_CHANNEL?"👤":"👥"}`)
+		.setLabel(`${Permissinos.VIEW_CHANNEL?"Hide":"Show"}`)
 		.setCustomId("button_hide")
 	let button3 = new MessageButton()
 		.setStyle("PRIMARY")
-		.setEmoji("🔇")
-		.setLabel("Mute/Unmute‎")
+		.setEmoji(`${Permissinos.SPEAK?"🔇":"🔊"}`)
+		.setLabel(`${Permissinos.SPEAK?"Mute":"Unmute"}`)
 		.setCustomId("button_mute")
 	let button4 = new MessageButton()
 		.setStyle("DANGER")
