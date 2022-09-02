@@ -39,9 +39,12 @@ client.on('ready', async () => {
 	RTCRegions = await client.fetchVoiceRegions()
 	guild = await client.guilds.cache.get(config.guild);
 	await guild.members.fetch().then(console.log).catch(console.error);
+	/*
 	console.log(guild)
 	console.log(guild.roles.everyone)
 	console.log(RTCRegions)
+	*/
+
 	//CreateControlMsg();
 	
 	//Registering Slash
@@ -78,17 +81,20 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 	let newUserChannel = newMember.channelId;
 	let userid = newMember.id;
 
+	/*
 	console.log(newMember)
 	console.log('User:',userid)
 	console.log('channel:',newUserChannel);   
 	console.log('=======')
-
+	*/
 	
 	let tempVcId = await db.get(`tempVcIdKey_${userid}`).catch(err => {}) //= await kvs1.get('tempVcIdKey_'+userid);
 	let tempTimestamp = await db.get(`tempTimestampKey_${userid}`).catch(err => {}) //= await kvs1.get('tempTimestampKey_'+userid);
 
+	/*
 	console.log('kvsVCid',tempVcId)
 	console.log('kvsTS',tempTimestamp)
+	*/
 
 	if (newUserChannel == config.HUBvcChannelID){
 		if (typeof tempVcId === 'undefined'){
@@ -115,6 +121,12 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 			}
 			
 			let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
+			if (!Vc){
+				await db.del(`tempVcIdKey_${userid}`).catch(err => {console.log('kv del error!')})
+				await db.del(`tempmsgIdKey_${userid}`).catch(err => {console.log('kv del error!')})
+				await db.del(`tempTimestampKey_${userid}`).catch(err => {console.log('kv del error!')})
+				return
+			}
 			let msg = await Vc.send({content:`<@${newMember.id}>`, embeds: [embeds]})
 			let tout = setTimeout(RemoveVTChannels, 180000, userid, tempVcId)
 			removeTimeouts[userid] = tout
@@ -129,7 +141,6 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 			let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
 			let Controlmsg = await Vc.messages.fetch(`${removeTimeoutsMsg[userid]}`)
 			await Controlmsg.delete().catch(() => {})
-
 		}
 	}
 	
@@ -181,7 +192,7 @@ async function CreatVTChannels(UserID){
 	await newTempVoiceChannel.lockPermissions().catch(console.error);
 	await newTempVoiceChannel.permissionOverwrites.edit(UserID,{SPEAK:true,CONNECT:true,VIEW_CHANNEL:true})
 	let msg = await newTempVoiceChannel.send(await CreateControlMsg(UserID,User.username))
-	console.log("newVC",newTempVoiceChannel)
+	//console.log("newVC",newTempVoiceChannel)
 	await db.put(`tempVcIdKey_${UserID}`, newTempVoiceChannel.id).catch(err => {console.log('kv save error!')})
 	await db.put(`tempmsgIdKey_${UserID}`, msg.id).catch(err => {console.log('kv save error!')})
 	await db.put(`tempTimestampKey_${UserID}`, Date.now()/1000).catch(err => {console.log('kv save error!')})
@@ -244,6 +255,14 @@ client.on("interactionCreate", async (interaction) => {
 
 			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 			Controlmsg.edit(await CreateControlMsg(newUser.id,newUser.user.username))
+			if (removeTimeouts[user.id]) {
+				clearTimeout(removeTimeouts[user.id])
+				delete removeTimeouts[userid]
+				let Controlmsg = await Vc.messages.fetch(`${removeTimeoutsMsg[userid]}`)
+				await Controlmsg.delete().catch(() => {})
+			}
+			
+			if (removeTimeouts2[user.id]) return await interaction.update({ content: `No. Vc is delete now.`, components: [] });
 
 			await db.del(`tempVcIdKey_${user.id}`).catch(err => {console.log('kv del error!')})
 			await db.del(`tempmsgIdKey_${user.id}`).catch(err => {console.log('kv del error!')})
@@ -346,11 +365,11 @@ client.on("interactionCreate", async (interaction) => {
 		}
 
 		let VCPermissions = await VC.permissionsFor(config.DefaultRoleID).serialize()
-		console.log(VCPermissions)
+		//console.log(VCPermissions)
 
 		if (interaction.customId === "button_lock") {
 
-			console.log(VCPermissions)
+			//console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(user.id,{CONNECT:true})
 			await VC.permissionOverwrites.edit(config.DefaultRoleID,{CONNECT:!VCPermissions.CONNECT})
 			return interaction.reply({content: `Connect : ${!VCPermissions.CONNECT}`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
@@ -359,7 +378,7 @@ client.on("interactionCreate", async (interaction) => {
 		else if (interaction.customId === "button_hide") 
 		{
 			
-			console.log(VCPermissions)
+			//console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(user.id,{VIEW_CHANNEL:true})
 			await VC.permissionOverwrites.edit(config.DefaultRoleID,{VIEW_CHANNEL:!VCPermissions.VIEW_CHANNEL})
 			return interaction.reply({content: `Everyone can ${VCPermissions.VIEW_CHANNEL?"not ":""}see this channel now.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
@@ -368,7 +387,7 @@ client.on("interactionCreate", async (interaction) => {
 		else if (interaction.customId === "button_mute") 
 		{
 			
-			console.log(VCPermissions)
+			//console.log(VCPermissions)
 			await VC.permissionOverwrites.edit(user.id,{SPEAK:true})
 			await VC.permissionOverwrites.edit(config.DefaultRoleID,{SPEAK:!VCPermissions.SPEAK})
 			return interaction.reply({content: `SPEAK : ${!VCPermissions.SPEAK}`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
@@ -544,7 +563,7 @@ client.on("interactionCreate", async (interaction) => {
 		{
 
 			
-			console.log(RTCRegions)
+			//console.log(RTCRegions)
 			if (RTCRegions.size < 1) return interaction.reply({content: `Error cannot find RTCRegions.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
@@ -588,7 +607,7 @@ client.on("interactionCreate", async (interaction) => {
 			for await (const key of db.keys()) {
 				
 				if (key.startsWith('tempVcIdKey_')){
-					console.log(key)
+					//console.log(key)
 					let embeds = {
 						"type": "rich",
 						"title": "管理員以使用強制清除指令!",
@@ -716,7 +735,7 @@ client.on("messageCreate", async (msg) => {
 	if (msg.channel.type === "dm") return
 	if (!owners.includes(msg.author.id)) return
 	if (msg.content !== `${config.prefix}create`) return
-	console.log("create")
+	//console.log("create")
 	if (msg.content = `${config.prefix}create`) {
 		await msg.delete().catch(() => {})
 		let embeds = {
@@ -726,6 +745,10 @@ client.on("messageCreate", async (msg) => {
 			"color": "0x00B9FF",
 			"author": {
 			  "name": "Larshagrid",
+			  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+			},
+			"footer": {
+			  "text": "TempVCs by Larshagrid#2620",
 			  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
 			}
 		  }
