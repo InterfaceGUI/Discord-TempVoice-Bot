@@ -45,7 +45,7 @@ Bot 使用 Nodejs  架構
 
 ![Lock](https://media.discordapp.net/attachments/920732721981038712/1015285659352711268/VC3.gif?width=512&height=371)
 
-![ChangeRTC](https://media.discordapp.net/attachments/920732721981038712/1015289354454827139/VC4.gif?width=930&height=675)
+![ChangeRTC](https://cdn.discordapp.com/attachments/920732721981038712/1015291018880487444/VC4s.gif)
 
 ![ChangeOwner](https://media.discordapp.net/attachments/920732721981038712/1015285660158005460/VC5.gif?width=512&height=371)
 
