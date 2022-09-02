@@ -42,7 +42,7 @@
 
 ## 大大大感謝
 
-參考來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
+靈感來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
 
 ## 一些功能演示
 
