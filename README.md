@@ -36,3 +36,19 @@ Bot 使用 Nodejs  架構
 ## 大大大感謝
 
 參考來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
+
+## 一些功能演示
+
+![Create VCs](https://media.discordapp.net/attachments/920732721981038712/1015285658857775154/VC1.gif)
+
+![show/hide](https://media.discordapp.net/attachments/920732721981038712/1015285659105230858/VC2.gif?width=512&height=371)
+
+![Lock](https://media.discordapp.net/attachments/920732721981038712/1015285659352711268/VC3.gif?width=512&height=371)
+
+![ChangeRTC](https://media.discordapp.net/attachments/920732721981038712/1015285659851825182/VC4.gif?width=512&height=371)
+
+![ChangeOwner](https://media.discordapp.net/attachments/920732721981038712/1015285660158005460/VC5.gif?width=512&height=371)
+
+![deleteVC](https://media.discordapp.net/attachments/920732721981038712/1015285660451622983/VC6.gif?width=512&height=371)
+
+![deleteVConDisconnect](https://media.discordapp.net/attachments/920732721981038712/1015285660824895588/VC7.gif?width=512&height=371)
