@@ -40,6 +40,7 @@ client.on('ready', async () => {
 	RTCRegions = await client.fetchVoiceRegions()
 	guild = await client.guilds.cache.get(config.guild);
 	await guild.members.fetch().then(console.log).catch(console.error);
+	await guild.roles.fetch().then(console.log).catch(console.error);
 	/*
 	console.log(guild)
 	console.log(guild.roles.everyone)
@@ -225,23 +226,40 @@ client.on("interactionCreate", async (interaction) => {
 		if (interaction.customId === 'select_ban') 
 		{
 			
-			let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
+			if (interaction.values[0].startsWith("_R")){
+				
+				let banrole = guild.roles.cache.find(role => role.id == interaction.values[0].replace("_R",""))
 
-			if (kickUser.voice.channelId == VC.id) await kickUser.voice.disconnect()
+				console.log(await VC.permissionsFor(banrole.id))
+				let VCPermissions = await VC.permissionsFor(banrole.id).serialize()
+				console.log(typeof(VCPermissions.VIEW_CHANNEL))
+				
+				let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
 
-			let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
-			let VCPermissions = await VC.permissionsFor(banUserid.id).serialize()
-			console.log(typeof(VCPermissions.VIEW_CHANNEL))
-			
-			let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
+				console.log(VCPermissions)
+				await VC.permissionOverwrites.edit(banrole.id,{VIEW_CHANNEL:viewchannel})
+				await interaction.update({ content: `OK. The Permission is update.\n${banrole} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				
 
-			console.log(VCPermissions)
-			await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:viewchannel})
-			
+			}
+			else
+			{
 
-			
-			await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
-			
+				let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
+				if (kickUser.voice.channelId == VC.id) await kickUser.voice.disconnect()
+
+				let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
+
+				let VCPermissions = await VC.permissionsFor(banUserid.id).serialize()
+				console.log(typeof(VCPermissions.VIEW_CHANNEL))
+				
+				let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
+
+				console.log(VCPermissions)
+				await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:viewchannel})
+				await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				
+			}
 			return 
 		}
 		else if (interaction.customId === 'select_kick') 
@@ -287,15 +305,40 @@ client.on("interactionCreate", async (interaction) => {
 			return 
 			 
 		}
-		else if (interaction.customId === 'select_kick') 
+		else if (interaction.customId === 'select_role') 
 		{
 			
-			let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
-			
-			await kickUser.voice.disconnect()
-			return await interaction.update({ content: `OK. GoodBye ${kickUser}.`, components: [] });
-			
-			 
+			if (interaction.values[0].startsWith("_R")){
+				
+				let wrole = guild.roles.cache.find(role => role.id == interaction.values[0].replace("_R",""))
+
+				console.log(await VC.permissionsFor(wrole.id))
+				let VCPermissions = await VC.permissionsFor(wrole.id).serialize()
+				console.log(typeof(VCPermissions.VIEW_CHANNEL))
+				
+				let viewchannel = VCPermissions.VIEW_CHANNEL? false: true
+
+				console.log(VCPermissions)
+				await VC.permissionOverwrites.edit(wrole.id,{VIEW_CHANNEL:viewchannel})
+				await interaction.update({ content: `OK. The Permission is update.\n${wrole} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				
+			}
+			else
+			{
+
+				let wUserid = client.users.cache.find(user => user.id == interaction.values[0])
+
+				let VCPermissions = await VC.permissionsFor(wUserid.id).serialize()
+				console.log(typeof(VCPermissions.VIEW_CHANNEL))
+				
+				let viewchannel = VCPermissions.VIEW_CHANNEL?  false: true
+
+				console.log(VCPermissions)
+				await VC.permissionOverwrites.edit(wUserid.id,{VIEW_CHANNEL:viewchannel})
+				await interaction.update({ content: `OK. The Permission is update.\n${wUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				
+			}
+			return 
 		}
 		else if (interaction.customId === 'select_Region') 
 		{
@@ -325,14 +368,17 @@ client.on("interactionCreate", async (interaction) => {
 			
 			let value = interaction.fields.getTextInputValue('_value').toLowerCase()
 			
+			let Krole = await guild.roles.cache.filter(role => String(role.name).toLowerCase().includes(value))
+
 			let banUser = await guild.members.cache.filter(user => String(user.user.username).toLowerCase().includes(value) )
 			//console.log(banUser)
-			if (banUser.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
-			const row = new MessageActionRow()
 			
-			if (banUser.size  >= 1) {
+			
+			if (banUser.size < 1 && Krole.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			const row = new MessageActionRow()
+			var options = []
 
-				var options = []
+			if (banUser.size  >= 1) {
 				var index = 0
 				banUser.forEach((user) => {
 					index += 1
@@ -345,6 +391,22 @@ client.on("interactionCreate", async (interaction) => {
 						})
 					}
 				});
+			}
+
+			if (Krole.size  >= 1) {
+				var index = 0
+				Krole.forEach((role) => {
+					index += 1
+					if(index <= 25) {
+						options.push({
+							label: role.name,
+							description: "Role",
+							value: `_R${role.id}`,
+						})
+					}
+				});
+			}
+
 				if (options.length < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 				console.log(options.size)
 				let msmComponents = new MessageSelectMenu()
@@ -352,7 +414,62 @@ client.on("interactionCreate", async (interaction) => {
 				.setPlaceholder('Nothing selected')
 				.addOptions(options)
 				row.addComponents(msmComponents);
+			
+			
+			return await interaction.reply({ content: 'Multiple duplicate names were found, please select the one you want.', components: [row] ,ephemeral: true});
+			
+		}
+		else if (interaction.customId === 'modal_whitelist') 
+		{
+			
+			let value = interaction.fields.getTextInputValue('_value').toLowerCase()
+			
+			let wUser = await guild.members.cache.filter(user => String(user.user.username).toLowerCase().includes(value) )
+			
+			let wrole = await guild.roles.cache.filter(role => String(role.name).toLowerCase().includes(value))
+
+			//console.log(banUser)
+			if (wUser.size < 1 && wrole.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			const row = new MessageActionRow()
+			var options = []
+			if (wUser.size  >= 1) {
+
+				
+				var index = 0
+				wUser.forEach((user) => {
+					index += 1
+					if(index <= 25) {
+						if (user.id == interaction.user.id) return
+						options.push({
+							label: user.user.username,
+							description: user.nickname?user.nickname:user.user.username,
+							value: user.id,
+						})
+					}
+				});
 			}
+			if (wrole.size  >= 1) {
+				var index = 0
+				wrole.forEach((role) => {
+					index += 1
+					if(index <= 25) {
+						options.push({
+							label: role.name,
+							description: "Role",
+							value: `_R${role.id}`,
+						})
+					}
+				});
+			}
+
+			if (options.length < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			console.log(options.size)
+			let msmComponents = new MessageSelectMenu()
+			.setCustomId('select_role')
+			.setPlaceholder('Nothing selected')
+			.addOptions(options)
+			row.addComponents(msmComponents);
+			
 			
 			return await interaction.reply({ content: 'Multiple duplicate names were found, please select the one you want.', components: [row] ,ephemeral: true});
 			
@@ -630,6 +747,24 @@ client.on("interactionCreate", async (interaction) => {
 
 
 		}
+		else if (interaction.customId === "button_whitelist") 
+		{
+			const modal = new Modal()
+				.setCustomId('modal_whitelist')
+				.setTitle('Add someone to WhiteList');
+			const MessageInput = new TextInputComponent()
+				.setCustomId("_value")
+				.setLabel("User Name")
+				.setPlaceholder("Type name here")
+				.setRequired(true)
+				.setMinLength(1)
+				.setMaxLength(4000)
+				.setStyle("SHORT")
+			modal.addComponents(new MessageActionRow().addComponents(MessageInput));
+			return await interaction.showModal(modal);
+
+
+		}
 
 		return interaction.deferUpdate()
 	}
@@ -715,7 +850,7 @@ async function CreateControlMsg(UserID,userName, Permissinos = {"VIEW_CHANNEL": 
 		.setLabel("Ban/Unban     ")
 		.setCustomId("button_ban")
 	let button5 = new MessageButton()
-		.setStyle("SECONDARY")
+		.setStyle("PRIMARY")
 		.setEmoji("🗒️")
 		.setLabel("Whitelist/Remove")
 		.setCustomId("button_whitelist")
