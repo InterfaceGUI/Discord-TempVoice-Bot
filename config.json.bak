@@ -1,0 +1,48 @@
+{
+<<<<<<< HEAD:config.json
+
+  "controlsEembed_content":{
+      "type": "rich",
+      "title": "臨時私人語音聊天控制",
+      "description": "**使用下面的按鈕可以快速更改一些設置！**. \n以下是按鈕的說明:\n\n使用 `Lock/Unlock` 鎖定 VC，以便只有列入白名單的用戶才能連接.\n使用 `Hide/Unhide` 將 VC 設為私有，以便只有列入白名單的用戶才能看到 VC。\n使用 `Mute/Unmute` 只允許白名單用戶發言，只影響新加入的用戶.\n使用 `Ban/Unban` 禁止指定用戶加入VC. \n使用 `Whitelist/Remove` 白名單.\n使用 `Limit` 限制可以加入的用戶數量.\n使用 `Change Owner` 轉讓包廂房主.\n使用 `Change Name` 將 VC 的名稱更改為您想要的任何名稱。 （記得遵守規則）\n使用 `Get Mention` 獲取語音邀請網址，立即邀請他們加入到語音頻道！!\n\n 轉讓房主會將原先的限制權限清除!!。",
+      "color": "0x00B9FF",
+      "author": {
+        "name": "",
+        "icon_url": ""
+      },
+      "fields": [],
+      "footer": {
+        "text": "TempVCs by Larshagrid#2620",
+        "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+      }
+  }
+}
+=======
+    "token":" token ",
+    "guild":" server id ",
+    "HUBtxtChannelID":" no need for now . ",
+    "HUBvcChannelID":" VC hub channel u need create by u owne, and put the hub id in here.",
+    "DefaultRoleID":"if use @everyone, just put the server id in here. ",
+    "categoryID":" a category to Collect your voice channels, u need create by you self, adn put category id here.",
+    "status":"",
+    "enable_slash":true,
+    "prefix":"]",
+    "owners":[
+        ""
+    ],
+    "controlsEembed_content":{
+        "type": "rich",
+        "title": "臨時私人語音聊天控制",
+        "description": "**使用下面的按鈕可以快速更改一些設置！**. \n以下是按鈕的說明:\n\n使用 `Lock/Unlock` 鎖定 VC，以便只有列入白名單的用戶才能連接.\n使用 `Hide/Unhide` 將 VC 設為私有，以便只有列入白名單的用戶才能看到 VC。\n使用 `Mute/Unmute` 只允許白名單用戶發言，只影響新加入的用戶.\n使用 `Ban/Unban` 禁止指定用戶加入VC. \n使用 `Whitelist/Remove` 白名單.\n使用 `Limit` 限制可以加入的用戶數量.\n使用 `Change Owner` 轉讓包廂房主.\n使用 `Change Name` 將 VC 的名稱更改為您想要的任何名稱。 （記得遵守規則）\n使用 `Get Mention` 獲取語音邀請網址，立即邀請他們加入到語音頻道！!\n\n 轉讓房主會將原先的限制權限清除!!。",
+        "color": "0x00B9FF",
+        "author": {
+          "name": "",
+          "icon_url": ""
+        },
+        "footer": {
+          "text": "Larshagrid#2620",
+          "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+        }
+    }
+}
+>>>>>>> 12c0d5855b54eada77e9c311b3de7eee0150cf25:config.json.bak
