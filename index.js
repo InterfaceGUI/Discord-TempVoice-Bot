@@ -1,7 +1,7 @@
 //Discord Client
 const { Client, Intents, MessageActionRow, MessageButton ,Permissions ,Modal ,TextInputComponent , MessageSelectMenu} = require('discord.js')
 const client = new Client({ intents: [Intents.FLAGS.GUILD_MEMBERS,Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES,"GUILDS",Intents.FLAGS.GUILD_VOICE_STATES] })
-
+const { SlashCommandBuilder } = require('@discordjs/builders');
 //Importing Rest & api-types
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
@@ -36,6 +36,7 @@ client.on('ready', async () => {
 		}]
 	})
 	*/
+
 	RTCRegions = await client.fetchVoiceRegions()
 	guild = await client.guilds.cache.get(config.guild);
 	await guild.members.fetch().then(console.log).catch(console.error);
@@ -53,10 +54,12 @@ client.on('ready', async () => {
 
 		const commands = [{
 			name: 'vc-fix',
-			description: '修復TempVCs'
+			description: '修復TempVCs',
+			default_member_permissions:'0'
 		},{
-			name: 'vc-creathub',
-			description: '建立HUB'
+			name: 'vc-hubmsg',
+			description: '建立HUB訊息',
+			default_member_permissions:'0'
 		}]
 		
 		try {
@@ -635,9 +638,7 @@ client.on("interactionCreate", async (interaction) => {
 		if (interaction.commandName == "vc-fix"){
 			await interaction.deferReply()
 
-			if (!config.owners.includes(user.id)) return await interaction.editReply({content: '?',ephemeral: true})
-
-			
+			if (!config.owners.includes(user.id)) return
 
 			for await (const key of db.keys()) {
 				
@@ -665,8 +666,26 @@ client.on("interactionCreate", async (interaction) => {
 			}
 			return await interaction.editReply({content: 'OK. 自爆啟動.',ephemeral: true})
 		}
-		
-		
+		else if (interaction.commandName == "vc-hubmsg")
+		{
+			await interaction.deferReply()
+			if (!config.owners.includes(user.id)) return
+			let embeds = {
+				"type": "rich",
+				"title": "臨時私人語音聊天",
+				"description": `加入 <#${config.HUBvcChannelID}> 來創建您自己的Temp VC，您將成為房主。 任何人都可以隨時加入，除非您在加入後在頻道中進行設置。`,
+				"color": "0x00B9FF",
+				"author": {
+				  "name": "Larshagrid",
+				  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+				},
+				"footer": {
+				  "text": "TempVCs by Larshagrid#2620",
+				  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+				}
+			  }
+			return interaction.editReply({ embeds: [embeds]})
+		}
 		
 	}
 })
@@ -752,7 +771,7 @@ async function CreateControlMsg(UserID,userName, Permissinos = {"VIEW_CHANNEL": 
 		.addComponents([button1, button2, button3, button6, button8])
 
 	let buttonRow3 = new MessageActionRow()
-		.addComponents([button5, button10, button11, button9, button14])
+		.addComponents([button5, button10, button11, button14])
 	
 
 
