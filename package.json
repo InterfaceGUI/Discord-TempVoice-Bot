@@ -1,11 +1,11 @@
 {
   "name": "DiscordTempVCs",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A VCs Bot for your server.Easy To Host.24/7 Online",
-  "main": "index.js",
+  "main": "tempVCs.js",
   "scripts": {
-    "test": "node index.js",
-    "start": "node index.js"
+    "test": "node tempVCs.js",
+    "start": "node tempVCs.js"
   },
   "repository": {
     "type": "git",
