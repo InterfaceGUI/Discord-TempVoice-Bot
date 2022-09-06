@@ -1,5 +1,6 @@
 //Discord Client
 const { Client, Intents, MessageActionRow, MessageButton ,Permissions ,Modal ,TextInputComponent , MessageSelectMenu} = require('discord.js')
+/*const { joinVoiceChannel } = require('@discordjs/voice');*/
 const client = new Client({ intents: [Intents.FLAGS.GUILD_MEMBERS,Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES,"GUILDS",Intents.FLAGS.GUILD_VOICE_STATES] })
 const { SlashCommandBuilder } = require('@discordjs/builders');
 //Importing Rest & api-types
@@ -41,6 +42,13 @@ client.on('ready', async () => {
 	guild = await client.guilds.cache.get(config.guild);
 	await guild.members.fetch().then(console.log).catch(/*console.error*/);
 	await guild.roles.fetch().then(console.log).catch(/*console.error*/);
+	/*
+	await joinVoiceChannel({
+		channelId: "1016302933446508595",
+		guildId: "873974474515578920",
+		adapterCreator: guild.voiceAdapterCreator
+	})
+	*/
 	/*
 	console.log(guild)
 	console.log(guild.roles.everyone)
@@ -233,15 +241,12 @@ client.on("interactionCreate", async (interaction) => {
 				
 				let banrole = guild.roles.cache.find(role => role.id == interaction.values[0].replace("_R",""))
 
-				//console.log(await VC.permissionsFor(banrole.id))
-				let VCPermissions = await VC.permissionsFor(banrole.id).serialize()
-				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
-				
-				let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
+				let VCPermissions = VC.permissionOverwrites.cache.find(value => value.id == banUserid.id)
+				let viewchannel = VCPermissions.deny.serialize().VIEW_CHANNEL?  null : false
 
 				//console.log(VCPermissions)
 				await VC.permissionOverwrites.edit(banrole.id,{VIEW_CHANNEL:viewchannel})
-				await interaction.update({ content: `OK. The Permission is update.\n${banrole} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				await interaction.update({ content: `OK. The Permission is update.\n${banrole} ${!VCPermissions.deny.serialize().VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
 				
 
 			}
@@ -250,17 +255,16 @@ client.on("interactionCreate", async (interaction) => {
 
 				let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
 				if (kickUser.voice.channelId == VC.id) await kickUser.voice.disconnect()
-
+				
 				let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
 
-				let VCPermissions = await VC.permissionsFor(banUserid.id).serialize()
-				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
-				
-				let viewchannel = VCPermissions.VIEW_CHANNEL?  false: null
+				let VCPermissions = VC.permissionOverwrites.cache.find(value => value.id == banUserid.id)
+				let viewchannel = VCPermissions.deny.serialize().VIEW_CHANNEL?  null : false
 
-				//console.log(VCPermissions)
+				
+				//console.log(viewchannel)
 				await VC.permissionOverwrites.edit(banUserid.id,{VIEW_CHANNEL:viewchannel})
-				await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				await interaction.update({ content: `OK. The Permission is update.\n${banUserid} ${!VCPermissions.deny.serialize().VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
 				
 			}
 			return 
@@ -323,7 +327,7 @@ client.on("interactionCreate", async (interaction) => {
 
 				//console.log(VCPermissions)
 				await VC.permissionOverwrites.edit(wrole.id,{VIEW_CHANNEL:viewchannel})
-				await interaction.update({ content: `OK. The Permission is update.\n${wrole} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				await interaction.update({ content: `OK. The Permission is update.\n${wrole} ${viewchannel? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
 				
 			}
 			else
@@ -338,7 +342,7 @@ client.on("interactionCreate", async (interaction) => {
 
 				//console.log(VCPermissions)
 				await VC.permissionOverwrites.edit(wUserid.id,{VIEW_CHANNEL:viewchannel})
-				await interaction.update({ content: `OK. The Permission is update.\n${wUserid} ${VCPermissions.VIEW_CHANNEL? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
+				await interaction.update({ content: `OK. The Permission is update.\n${wUserid} ${viewchannel? "Now can see this channel.":"Now cannot see this channel."} `, components: [] });
 				
 			}
 			return 
@@ -377,7 +381,7 @@ client.on("interactionCreate", async (interaction) => {
 			//console.log(banUser)
 			
 			
-			if (banUser.size < 1 && Krole.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (banUser.size < 1 && Krole.size < 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			var options = []
 
@@ -410,7 +414,7 @@ client.on("interactionCreate", async (interaction) => {
 				});
 			}
 
-				if (options.length < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+				if (options.length < 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 				//console.log(options.size)
 				let msmComponents = new MessageSelectMenu()
 				.setCustomId('select_ban')
@@ -432,7 +436,7 @@ client.on("interactionCreate", async (interaction) => {
 			let wrole = await guild.roles.cache.filter(role => String(role.name).toLowerCase().includes(value))
 
 			//console.log(banUser)
-			if (wUser.size < 1 && wrole.size < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (wUser.size < 1 && wrole.size < 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			var options = []
 			if (wUser.size  >= 1) {
@@ -465,7 +469,7 @@ client.on("interactionCreate", async (interaction) => {
 				});
 			}
 
-			if (options.length < 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (options.length < 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			//console.log(options.size)
 			let msmComponents = new MessageSelectMenu()
 			.setCustomId('select_role')
@@ -588,7 +592,7 @@ client.on("interactionCreate", async (interaction) => {
 			let kickUser = VC.members
 			
 			//console.log(banUser)
-			if (kickUser.size <= 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (kickUser.size <= 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
 			if (kickUser.size  > 1) {
@@ -640,7 +644,7 @@ client.on("interactionCreate", async (interaction) => {
 			await interaction.deferReply({ephemeral: true})
 			let finedUser = VC.members
 			//console.log(banUser)
-			if (finedUser.size <= 1) return interaction.reply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (finedUser.size <= 1) return interaction.editReply({content: `Error cannot find user.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
 			if (finedUser.size  > 1) {
@@ -722,7 +726,7 @@ client.on("interactionCreate", async (interaction) => {
 			await interaction.deferReply({ephemeral: true})
 			
 			//console.log(RTCRegions)
-			if (RTCRegions.size < 1) return interaction.reply({content: `Error cannot find RTCRegions.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+			if (RTCRegions.size < 1) return interaction.editReply({content: `Error cannot find RTCRegions.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 			const row = new MessageActionRow()
 			
 			var options = []
@@ -766,6 +770,78 @@ client.on("interactionCreate", async (interaction) => {
 			modal.addComponents(new MessageActionRow().addComponents(MessageInput));
 			return await interaction.showModal(modal);
 
+
+		}
+		else if (interaction.customId === "button_w-list") 
+		{
+
+			await interaction.deferReply({ephemeral: true })
+			let embeds = {
+				"type": "rich",
+				"title": "白名單列表",
+				"description": ``,
+				"color": "0xaf40de",
+				"author": {
+				  "name": "拉斯的私人語音包廂助理",
+				  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+				}
+			}
+
+			VC.permissionOverwrites.cache.forEach((value) => {
+				
+				let VCperm = value.allow.serialize()
+				if (!VCperm.VIEW_CHANNEL) return
+				if(value.type=='role'){
+					let grole = guild.roles.cache.find(role => role.id == value.id )
+					embeds.description += `${grole}\n`
+
+				}else if(value.type=='member'){
+
+					let gmember = guild.members.cache.find(user => user.id == value.id )
+					embeds.description += `${gmember}\n`
+
+				}
+
+			})
+			return interaction.editReply({ embeds: [embeds]})
+			//await Controlmsg.edit(await CreateControlMsg(user.id ,user.username ,VcPermissions ))
+			//await interaction.editReply({content: `Now everyone **can${!VcPermissions.CONNECT?"not** ":"** "}connect to this channel.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
+
+		}
+		else if (interaction.customId === "button_banlist") 
+		{
+
+			await interaction.deferReply({ephemeral: true })
+			let embeds = {
+				"type": "rich",
+				"title": "黑名單列表",
+				"description": ``,
+				"color": "0xaf40de",
+				"author": {
+				  "name": "拉斯的私人語音包廂助理",
+				  "icon_url": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+				}
+			}
+
+			VC.permissionOverwrites.cache.forEach((value) => {
+
+				let VCperm = value.deny.serialize()
+				if (!VCperm.VIEW_CHANNEL) return
+				if(value.type=='role'){
+					let grole = guild.roles.cache.find(role => role.id == value.id )
+					embeds.description += `${grole}\n`
+
+				}else if(value.type=='member'){
+
+					let gmember = guild.members.cache.find(user => user.id == value.id )
+					embeds.description += `${gmember}\n`
+
+				}
+
+			})
+			return interaction.editReply({ embeds: [embeds]})
+			//await Controlmsg.edit(await CreateControlMsg(user.id ,user.username ,VcPermissions ))
+			//await interaction.editReply({content: `Now everyone **can${!VcPermissions.CONNECT?"not** ":"** "}connect to this channel.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 
 		}
 
