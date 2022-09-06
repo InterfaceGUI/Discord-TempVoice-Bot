@@ -36,7 +36,7 @@
 1. 下載原始碼
 2. 完成 `config.json` 所需要的資料 ( Token、guild、HUBvcChannelID、DefaultRoleID、categoryID、owners )
 2. 安裝必要元件 `npm install`
-3. 啟動bot `node index.js`
+3. 啟動bot `node tempVCs.js`
 
 
 
