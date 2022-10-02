@@ -1,4 +1,4 @@
-# Discord 語音包廂 BOT 
+# Discord 語音包廂 BOT  Discord Temp Voice Channel
 
 ## 概述
 想要在Discord裡面有個不被打擾或是不想給別人加入的語音頻道
