@@ -1,4 +1,6 @@
-# Discord 語音包廂 BOT  Discord Temp Voice Channel
+<details> <summary>中文說明</summary>
+
+# Discord 語音包廂 BOT
 
 ## 概述
 想要在Discord裡面有個不被打擾或是不想給別人加入的語音頻道
@@ -44,7 +46,47 @@
 
 靈感來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
 
-## 一些功能演示
+<hr><br><br>
+
+</details>
+
+# Discord Temp Voice Channel
+
+This BOT allows the average user to create channels, edit names, numbers, visibility,etc.
+without the need for administrator intervention!
+
+And with the independent control interface, users can do:
+1. Kick the user out of the voice channel.
+2. Block the user from the voice channel.
+3. Set a maximum number of users.
+4. Change the region of the voice channel.
+5. Change the name of the voice channel.
+6. Set a whitelist.
+7. Mute new users who join after the mute has been applied.
+8. Hide the channel.
+9. Lock the channel.
+
+Server owners can:
+1. Set the default role.
+2. Clear all temp vcs
+3. Log
+
+And all temp vc will automatically clear the voice channel when the user leaves for more than 3 minutes
+
+
+## Install
+
+1. Download Repository
+2. Fill in the necessary information in `config.json` <br> ( Token、guild、HUBvcChannelID、DefaultRoleID、categoryID、owners )
+2. `npm install`
+3. `node tempVCs.js`
+
+
+This program is inspired by  [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/) made by MeltedButter77 on the Autocode platform
+
+
+
+## Demo
 
 ![Create VCs](https://media.discordapp.net/attachments/920732721981038712/1015285658857775154/VC1.gif)
 
