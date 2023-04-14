@@ -50,7 +50,7 @@
 
 </details>
 
-# Discord Temp Voice Channel
+# Discord Temp Voice Channel Bot
 
 This BOT allows the average user to create channels, edit names, numbers, visibility,etc.
 without the need for administrator intervention!
