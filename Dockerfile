@@ -8,4 +8,4 @@ COPY . /app
 RUN ls
 
 RUN npm install
-CMD [ "node", "index.js" ]
+CMD [ "node", "tempVCs.js" ]
