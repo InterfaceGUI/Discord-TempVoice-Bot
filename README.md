@@ -50,7 +50,15 @@
 
 </details>
 
+
+[1]:https://github.com/InterfaceGUI/Discord-TempVoice-Bot/actions/workflows/docker-image.yml/badge.svg?branch=master
+[2]:https://img.shields.io/github/license/interfacegui/Discord-TempVoice-Bot
+[3]:https://img.shields.io/github/package-json/v/interfacegui/Discord-TempVoice-Bot
+
 # Discord Temp Voice Channel Bot
+
+
+[![Docker Image CI][1]](https://github.com/InterfaceGUI/Discord-TempVoice-Bot/actions/workflows/docker-image.yml) ![GitHub][2] ![GitHub package.json version][3]
 
 This BOT allows the average user to create channels, edit names, numbers, visibility,etc.
 without the need for administrator intervention!
