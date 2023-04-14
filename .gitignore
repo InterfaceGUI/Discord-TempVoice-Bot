@@ -102,8 +102,7 @@ dist
 
 # TernJS port file
 .tern-port
-config.json
+.config.json
 index copy.js
 db/
-config.json
 package-lock.json

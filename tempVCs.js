@@ -4,12 +4,26 @@ const { Client, Intents, MessageActionRow, MessageButton ,Permissions ,Modal ,Te
 const client = new Client({ intents: [Intents.FLAGS.GUILD_MEMBERS,Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES,"GUILDS",Intents.FLAGS.GUILD_VOICE_STATES] })
 const { SlashCommandBuilder } = require('@discordjs/builders');
 //Importing Rest & api-types
+
 const { REST } = require('@discordjs/rest')
 const { Routes } = require('discord-api-types/v9')
 
+const fs = require('fs')
+
 //Loading Config
-const config = require('./config.json')
-console.log('Config Loaded')
+const config = require( fs.existsSync('./.config.json') ? './.config.json' : './config.json')
+
+//use env
+config.token= process.env.TOKEN
+config.guild= process.env.SERVER_ID
+config.HUBvcChannelID= process.env.HUB_ID
+config.DefaultRoleID= process.env.ROLE_ID
+config.categoryID= process.env.CATEGORY_ID
+config.prefix= process.env.PREFIX
+config.owners= process.env.OWNERS.split(',')
+
+
+console.log(`Config Loaded prefix: ${config.prefix}`)
 var owners = config.owners
 
 //import LevelUP levelDown 
@@ -124,6 +138,7 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 		if (typeof tempVcId !== 'undefined'){
 			if (removeTimeouts2[userid]) return
 			if (removeTimeouts[userid]) return
+
 			let embeds = {
 				"type": "rich",
 				"title": "房主已離開語音包廂",
@@ -844,6 +859,7 @@ client.on("interactionCreate", async (interaction) => {
 			//await interaction.editReply({content: `Now everyone **can${!VcPermissions.CONNECT?"not** ":"** "}connect to this channel.`,ephemeral: true }).catch(err => {VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``)})
 
 		}
+		
 
 		return interaction.deferUpdate()
 	}
@@ -938,27 +954,27 @@ async function CreateControlMsg(UserID,userName, Permissinos = {"VIEW_CHANNEL": 
 	let button4 = new MessageButton()
 		.setStyle("DANGER")
 		.setEmoji("🚫")
-		.setLabel("Ban/Unban     ")
+		.setLabel("ㅤBan/Unban")
 		.setCustomId("button_ban")
 	let button5 = new MessageButton()
 		.setStyle("PRIMARY")
 		.setEmoji("🗒️")
-		.setLabel("Whitelist/Remove")
+		.setLabel("ㅤWhitelist/Remove")
 		.setCustomId("button_whitelist")
 	let button6 = new MessageButton()
 		.setStyle("PRIMARY")
 		.setEmoji("⚠️")
-		.setLabel(" Limitㅤㅤ")
+		.setLabel(" Limit")
 		.setCustomId("button_limit")
 	let button7 = new MessageButton()
 		.setStyle("DANGER")
 		.setEmoji("📲")
-		.setLabel("Change Owner")
+		.setLabel("ㅤChange Owner")
 		.setCustomId("button_changeowner")
 	let button8 = new MessageButton()
 		.setStyle("PRIMARY")
 		.setEmoji("📝")
-		.setLabel("Change Name")
+		.setLabel("ㅤChange Name")
 		.setCustomId("button_changename")
 	let button9 = new MessageButton()
 		.setStyle("SECONDARY")
@@ -968,28 +984,33 @@ async function CreateControlMsg(UserID,userName, Permissinos = {"VIEW_CHANNEL": 
 	let button10 = new MessageButton()
 		.setStyle("SECONDARY")
 		.setEmoji("📃")
-		.setLabel("ㅤW-list Listㅤ")
+		.setLabel("ㅤW-list List")
 		.setCustomId("button_w-list")
 	let button11 = new MessageButton()
 		.setStyle("SECONDARY")
 		.setEmoji("📜")
-		.setLabel("ㅤBan Listㅤ      ")
+		.setLabel("ㅤBan List")
 		.setCustomId("button_banlist")
 	let button12 = new MessageButton()
 		.setStyle("DANGER")
 		.setEmoji("💢")
-		.setLabel("ㅤKickㅤ             ")
+		.setLabel("ㅤKick")
 		.setCustomId("button_kick")
 	let button13 = new MessageButton()
 		.setStyle("DANGER")
 		.setEmoji("🗑️")
-		.setLabel("ㅤDelete VCㅤ   ")
+		.setLabel("ㅤDelete VC")
 		.setCustomId("button_delete")
 	let button14 = new MessageButton()
 		.setStyle("PRIMARY")
 		.setEmoji("🌎")
-		.setLabel("ㅤChange Regionㅤ   ")
+		.setLabel("ㅤChange Region")
 		.setCustomId("button_Region")
+	let button15 = new MessageButton()
+		.setStyle("PRIMARY")
+		.setEmoji("🔖")
+		.setLabel("ㅤKeep VC")
+		.setCustomId("button_vcKeep")	
 	let buttonRow1 = new MessageActionRow()
 		.addComponents([button4, button12, button7, button13])
 

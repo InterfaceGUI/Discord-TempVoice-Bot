@@ -42,7 +42,7 @@
 
 
 
-## 大大大感謝
+## 大感謝
 
 靈感來自Autocode 平台上的 MeltedButter77 所做的 [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/)
 
@@ -85,6 +85,48 @@ And all temp vc will automatically clear the voice channel when the user leaves 
 This program is inspired by  [Temp VCs](https://autocode.com/MeltedButter77/apps/tempvoice/) made by MeltedButter77 on the Autocode platform
 
 
+## Docker compose
+```yml
+version: "3.9"
+services:
+  DiscordWelcomeBot:
+    image: "ghcr.io/interfacegui/discord-temp-vc-bot:latest"
+    environment:
+      TOKEN: "YOUR Discord TOKEN"
+      SERVER_ID: "YOUR Discord ServerID"
+      CATEGORY_ID: "Your category ID"
+      HUB_ID: "Your HUB Voice Channel ID"
+      ROLE_ID: "Defualt role | if you use @everyone pls put server id here"
+      PREFIX: "["
+      OWNERS: "123456,123456 "
+```
+
+### Environmental Variables
+
+* `TOKEN`
+Discord bot token
+
+* `SERVER_ID`
+Your server ID
+
+* `CATEGORY_ID`
+Category ID
+
+* `HUB_ID`
+Hub voice channel ID<br>
+
+* `ROLE_ID`
+Defualt role<br>
+VC Show/Lock will use this role<br>
+If you want to use `@everyone` please place the ServerID here
+
+* `PREFIX`
+The command perfix to create Hub text.
+
+* `OWNERS`
+Administrator ID
+If there are more than one, please separate them with a comma(`,`)<br>
+Note: There must not be any spaces!
 
 ## Demo
 
