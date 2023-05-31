@@ -1,7 +1,7 @@
 {
-  "name": "DiscordTempVCs",
-  "version": "0.1.0",
-  "description": "A VCs Bot for your server.Easy To Host.24/7 Online",
+  "name": "discord_temp_vcs",
+  "version": "1.0.2",
+  "description": "Discord Temp voice bot, that makes voice channel easy to create, manage, and change regions.",
   "main": "tempVCs.js",
   "scripts": {
     "test": "node tempVCs.js",
@@ -13,13 +13,13 @@
   },
   "keywords": [
     "Discord_Bot",
-    "Discord-js-v13",
+    "Discord-js-v14",
     "Discord_Buttons",
     "TempVCs",
     "24/7_Online",
     "Button_interactions"
   ],
-  "author": "TechWolf",
+  "author": "Larshagrid",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/InterfaceGUI/DiscordTempVCs/issues"
