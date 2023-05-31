@@ -19,6 +19,6 @@ config.HUBvcChannelID = process.env.HUB_ID || ''
 config.DefaultRoleID = process.env.ROLE_ID || ''
 config.categoryID = process.env.CATEGORY_ID || ''
 config.prefix = process.env.PREFIX || ']'
-config.owners = process.env.OWNERS.split(',') || ['']
+config.owners = process.env.OWNERS ? process.env.OWNERS.split(',') : null || ['']
 
 module.exports = { config }

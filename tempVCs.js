@@ -1,5 +1,5 @@
 //Discord Client
-const { Client, PermissionsBitField, Permissions, TextInputComponent, MessageSelectMenu, UserSelectMenuBuilder, GatewayIntentBits, SlashCommandBuilder, PermissionFlagsBits, ChannelType, RoleSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, EmbedBuilder } = require('discord.js')
+const { Client, PermissionsBitField, Permissions, TextInputBuilder, TextInputStyle, UserSelectMenuBuilder, GatewayIntentBits, SlashCommandBuilder, PermissionFlagsBits, ChannelType, RoleSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, EmbedBuilder, ModalBuilder, StringSelectMenuBuilder } = require('discord.js')
 
 const client = new Client({
 	intents: [
@@ -13,7 +13,7 @@ const { REST, RequestData } = require('@discordjs/rest');
 const { Routes, ButtonStyle } = require('discord-api-types/v10');
 
 const { config } = require('./config')
-const { embedFlooter, createHubEmbed, adminDeleteEmbed, controlsEmbed, whitelist_Embed, CancelPreDelete_Embed, predelete_Embed, ownerLeave_Embed } = require('./embeds.js')
+const { banlist_Embed, createHubEmbed, adminDeleteEmbed, controlsEmbed, whitelist_Embed, CancelPreDelete_Embed, predelete_Embed, ownerLeave_Embed } = require('./embeds.js')
 console.log(`Config Loaded prefix: ${config.prefix}`)
 var owners = config.owners
 
@@ -215,18 +215,18 @@ client.on("interactionCreate", async (interaction) => {
 
 	if (interaction.isRoleSelectMenu() || interaction.isUserSelectMenu()) {
 		if (interaction.customId == "menu_whitelist_member" || interaction.customId == "menu_whitelist_role") {
-			await interaction.update({ ephemeral: true, components: [], content: "" })
+			//whitelist_Embed.setDescription(".....")
+			await interaction.update({ ephemeral: true, components: [], content: "", embeds: [whitelist_Embed] })
 
-			var str1 = ""
+
 			if (interaction.customId == "menu_whitelist_role") {
 				let wrole = guild.roles.cache.find(role => role.id == interaction.values[0])
 				//console.log(await VC.permissionsFor(wrole.id))
 				let VCPermissions = await VC.permissionsFor(wrole.id).serialize()
 				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
-				let viewchannel = VCPermissions.ViewChannel ? false : true
 				//console.log(VCPermissions)
-				if (VCPermissions.ViewChannel) {
-					await VC.permissionOverwrites.create(wrole.id, { ViewChannel: viewchannel })
+				if (!VCPermissions.ViewChannel) {
+					await VC.permissionOverwrites.create(wrole.id, { ViewChannel: true })
 				} else {
 					await VC.permissionOverwrites.delete(wrole.id)
 				}
@@ -236,26 +236,27 @@ client.on("interactionCreate", async (interaction) => {
 				let wUserid = client.users.cache.find(user => user.id == interaction.values[0])
 				let VCPermissions = await VC.permissionsFor(wUserid.id).serialize()
 				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
-				let viewchannel = VCPermissions.ViewChannel ? false : true
 				//console.log(VCPermissions)
-				if (VCPermissions.ViewChannel) {
-					await VC.permissionOverwrites.create(wUserid.id, { ViewChannel: viewchannel })
+				if (!VCPermissions.ViewChannel) {
+					await VC.permissionOverwrites.create(wUserid.id, { ViewChannel: true })
 				} else {
 					await VC.permissionOverwrites.delete(wUserid.id)
 				}
 			}
-
+			var str1_role = "", str1_member = ""
 			VC.permissionOverwrites.cache.forEach((value) => {
 				let VCperm = value.allow.serialize()
 				if (!VCperm.ViewChannel) return
 				if (value.type == 0) {
-					str1 += `<@&${value.id}>\n`
+					str1_role += `<@&${value.id}>\n`
 				} else if (value.type == 1) {
-					str1 += `<@${value.id}>\n`
+					str1_member += `<@${value.id}>\n`
 				}
 			})
-			if (str1 != "") whitelist_Embed.setDescription(str1)
-
+			whitelist_Embed.setFields([
+				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
+				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
+			])
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_whitelist_member')
@@ -270,56 +271,57 @@ client.on("interactionCreate", async (interaction) => {
 				.addComponents(userselectmenu)
 			const row2 = new ActionRowBuilder()
 				.addComponents(roleselectmenu)
-			return await interaction.editReply({ ephemeral: true, components: [row1, row2], embeds: [whitelist_Embed] });
+			return await interaction.editReply({ ephemeral: true, content: "", components: [row1, row2], embeds: [whitelist_Embed] });
 
-		} else if (interaction.customId == "menu_ban_member" || interaction.customId == "menu_ban_role") {
+
+		} else if (interaction.customId == "menu_banlist_member" || interaction.customId == "menu_banlist_role") {
 			await interaction.update({ ephemeral: true, components: [], content: "" })
 
-			var str1 = ""
-			if (interaction.customId == "menu_ban_role") {
+
+			if (interaction.customId == "menu_banlist_role") {
 				let banrole = guild.roles.cache.find(role => role.id == interaction.values[0])
 				let VCPermissions = VC.permissionOverwrites.cache.find(value => value.id == banrole.id)
-				let viewchannel = VCPermissions.ViewChannel ? true : false
-				await VC.permissionOverwrites.create(banrole.id, { ViewChannel: viewchannel })
 
-				if (!viewchannel) {
-					await VC.permissionOverwrites.create(banrole.id, { ViewChannel: viewchannel })
+				if (typeof VCPermissions === 'undefined' || !VCPermissions.deny.serialize().ViewChannel) {
+					await VC.permissionOverwrites.create(banrole.id, { ViewChannel: false })
 				} else {
 					await VC.permissionOverwrites.delete(banrole.id)
 				}
 			} else {
-				let kickUser = guild.members.cache.find(user => user.id == interaction.values[0])
-				if (kickUser.voice.channelId == VC.id) await kickUser.voice.disconnect().catch()
-				let banUserid = client.users.cache.find(user => user.id == interaction.values[0])
+				let banUserid = guild.members.cache.find(user => user.id == interaction.values[0])
+				if (banUserid.voice.channelId == VC.id) await banUserid.voice.disconnect().catch()
+
 				let VCPermissions = VC.permissionOverwrites.cache.find(value => value.id == banUserid.id)
-				let viewchannel = VCPermissions.ViewChannel ? null : false
-				if (!viewchannel) {
-					await VC.permissionOverwrites.create(banrole.id, { ViewChannel: viewchannel })
+				if (typeof VCPermissions === 'undefined' || !VCPermissions.deny.serialize().ViewChannel) {
+					await VC.permissionOverwrites.create(banUserid.id, { ViewChannel: false })
 				} else {
-					await VC.permissionOverwrites.delete(banrole.id)
+					await VC.permissionOverwrites.delete(banUserid.id)
 				}
 
 			}
-
+			var str1_role = "", str1_member = ""
 			VC.permissionOverwrites.cache.forEach((value) => {
 				let VCperm = value.allow.serialize()
-				if (VCperm.ViewChannel) return
+				if (VCperm.ViewChannel || typeof value === 'undefined') return
 				if (value.type == 0) {
-					str1 += `<@&${value.id}>\n`
+					str1_role += `<@&${value.id}>\n`
 				} else if (value.type == 1) {
-					str1 += `<@${value.id}>\n`
+					str1_member += `<@${value.id}>\n`
 				}
 			})
-			if (str1 != "") banlist_Embed.setDescription(str1)
+			banlist_Embed.setFields([
+				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
+				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
+			])
 
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
-				.setCustomId('menu_ban_member')
+				.setCustomId('menu_banlist_member')
 				.setPlaceholder('選擇使用者')
 
 			const roleselectmenu = new RoleSelectMenuBuilder()
 				.setMaxValues(1)
-				.setCustomId('menu_ban_role')
+				.setCustomId('menu_banlist_role')
 				.setPlaceholder('選擇身分組')
 
 			const row1 = new ActionRowBuilder()
@@ -413,79 +415,77 @@ client.on("interactionCreate", async (interaction) => {
 			var VcPermissions = VCPermissions
 
 			//console.log(VCPermissions)
-			VcPermissions.CONNECT = !VcPermissions.CONNECT
-			await VC.permissionOverwrites.edit(user.id, { CONNECT: true })
-			await VC.permissionOverwrites.edit(config.DefaultRoleID, { CONNECT: VcPermissions.CONNECT })
+			VcPermissions.Connect = !VcPermissions.Connect
+			await VC.permissionOverwrites.edit(user.id, { Connect: true })
+			await VC.permissionOverwrites.edit(config.DefaultRoleID, { Connect: VcPermissions.Connect })
 
 
 			await Controlmsg.edit(await CreateControlMsg(user.id, user.username, VcPermissions))
-			await interaction.editReply({ content: `Now everyone **can${!VcPermissions.CONNECT ? "not** " : "** "}connect to this channel.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
+			await interaction.editReply({ content: `Now everyone **can${!VcPermissions.Connect ? "not** " : "** "}connect to this channel.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
 			return
 
 		}
 		else if (interaction.customId === "button_hide") {
 			await interaction.deferReply({ ephemeral: true })
 			var VcPermissions = VCPermissions
-			VcPermissions.VIEW_CHANNEL = !VcPermissions.VIEW_CHANNEL
+			VcPermissions.ViewChannel = !VcPermissions.ViewChannel
 			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 			//console.log(VCPermissions)
-			await VC.permissionOverwrites.edit(user.id, { VIEW_CHANNEL: true })
-			await VC.permissionOverwrites.edit(config.DefaultRoleID, { VIEW_CHANNEL: VcPermissions.VIEW_CHANNEL })
+			await VC.permissionOverwrites.edit(user.id, { ViewChannel: true })
+			await VC.permissionOverwrites.edit(config.DefaultRoleID, { ViewChannel: VcPermissions.ViewChannel })
 
 			await Controlmsg.edit(await CreateControlMsg(user.id, user.username, VcPermissions))
-			await interaction.editReply({ content: `Now everyone **can${!VcPermissions.VIEW_CHANNEL ? "not** " : "** "}see this channel.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
+			await interaction.editReply({ content: `Now everyone **can${!VcPermissions.ViewChannel ? "not** " : "** "}see this channel.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
 			return
 		}
 		else if (interaction.customId === "button_mute") {
 			await interaction.deferReply({ ephemeral: true })
 
 			var VcPermissions = VCPermissions
-			VcPermissions.SPEAK = !VcPermissions.SPEAK
+			VcPermissions.Speak = !VcPermissions.Speak
 			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 
 			//console.log(VCPermissions)
-			await VC.permissionOverwrites.edit(user.id, { SPEAK: true })
-			await VC.permissionOverwrites.edit(config.DefaultRoleID, { SPEAK: VcPermissions.SPEAK })
+			await VC.permissionOverwrites.edit(user.id, { Speak: true })
+			await VC.permissionOverwrites.edit(config.DefaultRoleID, { Speak: VcPermissions.Speak })
 
 			await Controlmsg.edit(await CreateControlMsg(user.id, user.username, VcPermissions))
-			await interaction.editReply({ content: `Now new join user **can${VcPermissions.SPEAK ? "**" : "not**"} Speak.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
+			await interaction.editReply({ content: `Now new join user **can${VcPermissions.Speak ? "**" : "not**"} Speak.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
 			return
 		}
 		else if (interaction.customId === "button_limit") {
 
-			const modal = new Modal()
+			const modal = new ModalBuilder()
 				.setCustomId('modal_limit')
 				.setTitle('Set User limit');
-			const MessageInput = new TextInputComponent()
+			const MessageInput = new TextInputBuilder()
 				.setCustomId("_value")
 				.setLabel("User limit")
 				.setPlaceholder("Type number here")
 				.setRequired(true)
 				.setMinLength(1)
 				.setMaxLength(2)
-				.setStyle("SHORT")
-			modal.addComponents(new MessageActionRow().addComponents(MessageInput));
+				.setStyle(TextInputStyle.Short)
+			modal.addComponents(new ActionRowBuilder().addComponents(MessageInput));
 			return await interaction.showModal(modal);
 
 		}
 		else if (interaction.customId === "button_ban") {
-			var str1 = ""
-			VC.permissionOverwrites
+
+			var str1_role = "", str1_member = ""
 			VC.permissionOverwrites.cache.forEach((value) => {
 				let VCperm = value.allow.serialize()
-				if (VCperm.ViewChannel || VCperm.ViewChannel === null) return
+				if (VCperm.ViewChannel || typeof value === 'undefined') return
 				if (value.type == 0) {
-					let grole = guild.roles.cache.find(role => role.id == value.id)
-					str1 += `${grole}\n`
-
+					str1_role += `<@&${value.id}>\n`
 				} else if (value.type == 1) {
-
-					let gmember = guild.members.cache.find(user => user.id == value.id)
-					str1 += `${gmember}\n`
-
+					str1_member += `<@${value.id}>\n`
 				}
 			})
-			if (str1 != "") banlist_Embed.setDescription(str1)
+			banlist_Embed.setFields([
+				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
+				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
+			])
 
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
@@ -511,7 +511,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			//console.log(banUser)
 			if (kickUser.size <= 1) return interaction.editReply({ content: `Error cannot find user.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
-			const row = new MessageActionRow()
+			const row = new ActionRowBuilder()
 
 			if (kickUser.size > 1) {
 				var options = []
@@ -541,18 +541,18 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		else if (interaction.customId === "button_changename") {
 
-			const modal = new Modal()
+			const modal = new ModalBuilder()
 				.setCustomId('modal_changename')
 				.setTitle('Change VC Name');
-			const MessageInput = new TextInputComponent()
+			const MessageInput = new TextInputBuilder()
 				.setCustomId("_value")
 				.setLabel("Name")
 				.setPlaceholder("Type name here")
 				.setRequired(true)
 				.setMinLength(1)
 				.setMaxLength(4000)
-				.setStyle("SHORT")
-			modal.addComponents(new MessageActionRow().addComponents(MessageInput));
+				.setStyle(TextInputStyle.Short)
+			modal.addComponents(new ActionRowBuilder().addComponents(MessageInput));
 			return await interaction.showModal(modal);
 
 		}
@@ -561,7 +561,7 @@ client.on("interactionCreate", async (interaction) => {
 			let finedUser = VC.members
 			//console.log(banUser)
 			if (finedUser.size <= 1) return interaction.editReply({ content: `Error cannot find user.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
-			const row = new MessageActionRow()
+			const row = new ActionRowBuilder()
 
 			if (finedUser.size > 1) {
 				var options = []
@@ -621,7 +621,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			//console.log(RTCRegions)
 			if (RTCRegions.size < 1) return interaction.editReply({ content: `Error cannot find RTCRegions.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
-			const row = new MessageActionRow()
+			const row = new ActionRowBuilder()
 
 			var options = []
 			options.push({
@@ -638,7 +638,7 @@ client.on("interactionCreate", async (interaction) => {
 				})
 			});
 
-			let msmComponents = new MessageSelectMenu()
+			let msmComponents = new StringSelectMenuBuilder()
 				.setCustomId('select_Region')
 				.setPlaceholder('Nothing selected')
 				.addOptions(options)
@@ -650,23 +650,20 @@ client.on("interactionCreate", async (interaction) => {
 		}
 		else if (interaction.customId === "button_whitelist") {
 
-			var str1 = ""
-			VC.permissionOverwrites
+			var str1_role = "", str1_member = ""
 			VC.permissionOverwrites.cache.forEach((value) => {
 				let VCperm = value.allow.serialize()
 				if (!VCperm.ViewChannel) return
 				if (value.type == 0) {
-					let grole = guild.roles.cache.find(role => role.id == value.id)
-					str1 += `${grole}\n`
-
+					str1_role += `<@&${value.id}>\n`
 				} else if (value.type == 1) {
-
-					let gmember = guild.members.cache.find(user => user.id == value.id)
-					str1 += `${gmember}\n`
-
+					str1_member += `<@${value.id}>\n`
 				}
 			})
-			if (str1 != "") whitelist_Embed.setDescription(str1)
+			whitelist_Embed.setFields([
+				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
+				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
+			])
 
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
@@ -726,22 +723,22 @@ client.on("interactionCreate", async (interaction) => {
 })
 
 
-async function CreateControlMsg(UserID, userName, Permissinos = { "VIEW_CHANNEL": false, "CONNECT": true, "SPEAK": true, }) {
+async function CreateControlMsg(UserID, userName, Permissinos = { "ViewChannel": false, "Connect": true, "Speak": true, }) {
 
 	let button1 = new ButtonBuilder()
 		.setStyle(ButtonStyle.Primary)
-		.setEmoji(`${Permissinos.CONNECT ? "🔒" : "🔓"}`)
-		.setLabel(`${Permissinos.CONNECT ? "Lock" : "Unlock"}`)
+		.setEmoji(`${Permissinos.Connect ? "🔒" : "🔓"}`)
+		.setLabel(`${Permissinos.Connect ? "Lock" : "Unlock"}`)
 		.setCustomId("button_lock")
 	let button2 = new ButtonBuilder()
 		.setStyle(ButtonStyle.Primary)
-		.setEmoji(`${Permissinos.VIEW_CHANNEL ? "👤" : "👥"}`)
-		.setLabel(`${Permissinos.VIEW_CHANNEL ? "Hide" : "Show"}`)
+		.setEmoji(`${Permissinos.ViewChannel ? "👤" : "👥"}`)
+		.setLabel(`${Permissinos.ViewChannel ? "Hide" : "Show"}`)
 		.setCustomId("button_hide")
 	let button3 = new ButtonBuilder()
 		.setStyle(ButtonStyle.Primary)
-		.setEmoji(`${Permissinos.SPEAK ? "🔇" : "🔊"}`)
-		.setLabel(`${Permissinos.SPEAK ? "Mute" : "Unmute"}`)
+		.setEmoji(`${Permissinos.Speak ? "🔇" : "🔊"}`)
+		.setLabel(`${Permissinos.Speak ? "Mute" : "Unmute"}`)
 		.setCustomId("button_mute")
 	let button4 = new ButtonBuilder()
 
@@ -808,10 +805,10 @@ async function CreateControlMsg(UserID, userName, Permissinos = { "VIEW_CHANNEL"
 		.addComponents([button4, button12, button7, button13])
 
 	let buttonRow2 = new ActionRowBuilder()
-		.addComponents([button1, button2, button3, button6, button8])
+		.addComponents([button1, button2, button3, button6])
 
 	let buttonRow3 = new ActionRowBuilder()
-		.addComponents([button5, button10, button11, button14])
+		.addComponents([button8, button5, button14])
 	controlsEmbed.setAuthor({
 		name: `${userName} 的包廂`,
 		iconURL: `${client.users.cache.find(user => user.id == UserID).avatarURL()}`
@@ -820,4 +817,4 @@ async function CreateControlMsg(UserID, userName, Permissinos = { "VIEW_CHANNEL"
 	return { content: `<@${UserID}>`, embeds: [controlsEmbed], components: [buttonRow1, buttonRow2, buttonRow3] }
 }
 
-client.login(config.token).catch(() => console.log('Invalid Token.Make Sure To Fill config.json'))
+client.login(config.token).catch(() => console.log('Invalid Token.Make Sure To Fill config.js or set ENV'))

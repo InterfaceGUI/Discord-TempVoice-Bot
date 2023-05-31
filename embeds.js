@@ -2,7 +2,7 @@ const { Client, PermissionsBitField, Permissions, TextInputComponent, MessageSel
 const { config } = require('./config')
 
 const flooter = {
-    "text": "TempVCs by Larshagrid#2620",
+    "text": "TempVCs by Larshagrid#2620 | ver 2023.5.31",
     "iconURL": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
 }
 
