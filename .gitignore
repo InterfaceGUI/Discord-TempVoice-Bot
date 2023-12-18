@@ -106,3 +106,4 @@ dist
 index copy.js
 db/
 package-lock.json
+config.js

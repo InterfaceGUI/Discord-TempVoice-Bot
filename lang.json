@@ -1,0 +1,16 @@
+{
+    "commands": {
+        "vc-fix": {
+            "en-US": "Fix tempvc database(Will delete all tempvc)",
+            "zh-TW": "修復語音包廂"
+        },
+        "vc-hubmsg":{
+            "en-US": "Send HUB message to current channel.",
+            "zh-TW": "傳送HUB訊息"
+        },
+        "vc-control":{
+            "en-US": "Show tempVC control UI.",
+            "zh-TW": "顯示包廂控制介面"
+        }
+    }
+}

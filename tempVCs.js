@@ -8,12 +8,24 @@ const client = new Client({
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildVoiceStates]
 })
-
+const lang = require('./lang.json')
 const { REST, RequestData } = require('@discordjs/rest');
 const { Routes, ButtonStyle } = require('discord-api-types/v10');
 
 const { config } = require('./config')
-const { banlist_Embed, createHubEmbed, adminDeleteEmbed, controlsEmbed, whitelist_Embed, CancelPreDelete_Embed, predelete_Embed, ownerLeave_Embed } = require('./embeds.js')
+const {
+	template_banlist_Embed,
+	template_createHubEmbed,
+	template_adminDeleteEmbed,
+	template_controlsEmbed,
+	template_whitelist_Embed,
+	template_ownerNew_Embed,
+	template_CancelPreDelete_Embed,
+	template_predelete_Embed,
+	template_ownerLeave_Embed,
+	template_ownerLeaveNext_Embed
+} = require('./embeds.js')
+
 console.log(`Config Loaded prefix: ${config.prefix}`)
 var owners = config.owners
 
@@ -23,17 +35,21 @@ const db = new Level('./db', { valueEncoding: 'json' })
 
 var guild;
 var RTCRegions;
+var VC_control_command
+
+//房主離開用
 var removeTimeouts = {};
 var removeTimeoutsMsg = {};
 
 var removeTimeouts2 = {};
 var removeTimeoutsMsg2 = {};
 
+
 //Ready Event
 client.on('ready', async () => {
 	console.log(`${client.user.tag} is Ready!`)
 
-	/*
+	/* custom status
 	client.user.setPresence({
 		status: "online",
 		activities: [{
@@ -42,11 +58,11 @@ client.on('ready', async () => {
 		}]
 	})
 	*/
-
+	cleanHUB_Timeban()
 	RTCRegions = await client.fetchVoiceRegions()
 	guild = await client.guilds.cache.get(config.guild);
-	await guild.members.fetch().then(console.log).catch(/*console.error*/);
-	await guild.roles.fetch().then(console.log).catch(/*console.error*/);
+	await guild.members.fetch().then(/*console.log*/).catch(/*console.error*/);
+	await guild.roles.fetch().then(/*console.log*/).catch(/*console.error*/);
 
 	//Registering Slash
 	if (config.enable_slash) {
@@ -55,16 +71,18 @@ client.on('ready', async () => {
 		//const rest = new REST({ version: '9' }).setToken(config.token)
 		const cmd1 = new SlashCommandBuilder()
 			.setName('vc-fix')
-			.setDescription('修復TempVCs')
+			.setDescription('修復語音包廂')
+			.setDescriptionLocalizations(lang.commands['vc-fix'])
 			.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 		const cmd2 = new SlashCommandBuilder()
 			.setName('vc-hubmsg')
 			.setDescription('建立HUB訊息')
+			.setDescriptionLocalizations(lang.commands['vc-hubmsg'])
 			.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 		const cmd3 = new SlashCommandBuilder()
 			.setName('vc-control')
 			.setDescription('呼叫主控台')
-
+			.setDescriptionLocalizations(lang.commands['vc-control'])
 		const commands = [cmd1.toJSON(), cmd2.toJSON(), cmd3.toJSON()]
 
 		try {
@@ -74,12 +92,17 @@ client.on('ready', async () => {
 				Routes.applicationCommands(client.user.id),
 				{ body: commands },
 			);
+			const commands11 = await rest.get(
+				Routes.applicationCommands(client.user.id)
+			);
 
+			VC_control_command = commands11.find(cmd => cmd.name === cmd3.name);
 			console.log('[INFO] Successfully reloaded application (/) commands.')
 		}
 		catch (error) {
 			console.error(error)
 		}
+
 	}
 
 })
@@ -101,33 +124,69 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 
 	if (newUserChannel == config.HUBvcChannelID) {
 		if (typeof tempVcId === 'undefined') {
-			setTimeout(MoveUser, 1500, userid, newMember)
+			setTimeout(MoveUser, 1000, userid, newMember)
 			return
 		}
 	}
 
 	if (typeof tempVcId === 'undefined') return
-
+	/*  /// 房主離開 自動刪除頻道
 	if (!newUserChannel || newUserChannel != tempVcId) {
 		if (typeof tempVcId !== 'undefined') {
 			if (removeTimeouts2[userid]) return
 			if (removeTimeouts[userid]) return
 
-			ownerLeave_Embed.setDescription(`房主已離開 <#${tempVcId}>。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 180}:R> 刪除。 \n如要取消，請重新加入語音頻道。`)
+			//ownerLeave_Embed.setDescription(`房主已離開 <#${tempVcId}>。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 180}:R> 刪除。 \n如要取消，請重新加入語音頻道。`)
+			ownerLeave_Embed.data.description = ownerLeave_Embed.data.description
+				.replace('$tempVcId',`<#${tempVcId}>`)
+			ownerLeave_Embed.data.description = ownerLeave_Embed.data.description
+				.replace('$timeLeft',`<t:${Math.floor(Date.now() / 1000) + 180}:R>`)
+
 			let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
-			if (!Vc) {
+			if (!Vc) { // 找查頻道是否存在，不存在自動清除資料庫記憶
 				await db.del(`tempVcIdKey_${userid}`).catch(err => { console.log('kv del error!') })
 				await db.del(`tempmsgIdKey_${userid}`).catch(err => { console.log('kv del error!') })
 				await db.del(`tempTimestampKey_${userid}`).catch(err => { console.log('kv del error!') })
 				return
 			}
+			//傳送訊息，並且設定Timeout排程刪除
 			let msg = await Vc.send({ content: `<@${newMember.id}>`, embeds: [ownerLeave_Embed] })
 			let tout = setTimeout(RemoveVTChannels, 180000, userid, tempVcId)
 			removeTimeouts[userid] = tout
 			removeTimeoutsMsg[userid] = msg.id
 		}
-	}
+	}*/
 
+	/// 改為 房主離開 自動給下一個使用者房主
+	if (!newUserChannel || newUserChannel != tempVcId) {
+		if (typeof tempVcId !== 'undefined') {
+			if (removeTimeouts2[userid]) return
+			if (removeTimeouts[userid]) return
+
+
+			let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
+			if (!Vc) { // 找查頻道是否存在，不存在自動清除資料庫記憶
+				await db.del(`tempVcIdKey_${userid}`).catch(err => { console.log('kv del error!') })
+				await db.del(`tempmsgIdKey_${userid}`).catch(err => { console.log('kv del error!') })
+				await db.del(`tempTimestampKey_${userid}`).catch(err => { console.log('kv del error!') })
+				return
+			}
+
+			//ownerLeave_Embed.setDescription(`房主已離開 <#${tempVcId}>。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 180}:R> 刪除。 \n如要取消，請重新加入語音頻道。`)
+			let ownerLeaveNext_Embed = template_ownerLeaveNext_Embed
+			ownerLeaveNext_Embed.data.description = template_ownerLeaveNext_Embed.data.description
+				.replace('$tempVcId', `<#${tempVcId}>`)
+			ownerLeaveNext_Embed.data.description = template_ownerLeaveNext_Embed.data.description
+				.replace('$timeLeft', `<t:${Math.floor(Date.now() / 1000) + 180}:R>`)
+
+			//傳送訊息，並且設定Timeout排程
+			let msg = await Vc.send({ content: `<@${newMember.id}>`, embeds: [ownerLeaveNext_Embed] })
+			//let tout = setTimeout(RemoveVTChannels2, 180000, userid, tempVcId)
+			let tout = setTimeout(RemoveVTChannels2, 180000, userid, tempVcId)
+			removeTimeouts[userid] = tout
+			removeTimeoutsMsg[userid] = msg.id
+		}
+	}
 	if (newUserChannel == tempVcId) {
 		if (removeTimeouts[userid]) {
 			clearTimeout(removeTimeouts[userid])
@@ -146,8 +205,103 @@ async function RemoveMsg(msg) {
 }
 
 async function MoveUser(userid, Member) {
+	//下次更新需添加 冷卻時間 預防進進出出
+	let HUBVC = await guild.channels.cache.find(channel => channel.id == config.HUBvcChannelID)
+	await HUBVC.permissionOverwrites.create(userid, { Connect: false })
+	
+	//await db.put(`tempHUBBan_${userid}`, Date.now() / 1000).catch()
+
 	let newVCid = await CreatVTChannels(userid);
-	await Member.setChannel(newVCid).catch(err => {/*remove channel*/ })
+	let VC = await guild.channels.cache.find(channel => channel.id == newVCid)
+
+	Member.setChannel(newVCid).then(async ()=>{
+		
+		await HUBVC.permissionOverwrites.delete(userid)
+
+	}).catch(async err => {
+		await Member.member.send(`系統無法將您移動到新的 語音頻道! 已經將保留的VC刪除! 60秒後才可再次創建新的語音頻道。`).cache()
+		var UBBans = await db.get(`tempHUBBans`).catch(async ()=>{
+			await db.put('tempHUBBans',{})
+			return await db.get(`tempHUBBans`)
+		})
+		if (Object.keys(UBBans).length === 0) setTimeout(cleanHUB_Timeban, 1000 * 5)
+		UBBans[`${userid}`] = Date.now()
+		await db.put('tempHUBBans',UBBans)
+
+		if (typeof VC !== 'undefined') VC.delete().catch(() => { console.log('VC delete error') })
+		await db.del(`tempVcIdKey_${userid}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempmsgIdKey_${userid}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempTimestampKey_${userid}`).catch(err => { console.log('kv del error!') })
+		return
+	})
+}
+
+async function cleanHUB_Timeban(){
+	var UBBans = await db.get(`tempHUBBans`).catch(async ()=>{
+		await db.put('tempHUBBans',{})
+		return await db.get(`tempHUBBans`)
+	})
+	Object.keys(UBBans).forEach(async key => {
+		//console.log((Date.now() - UBBans[key]) / 1000)
+		if (Date.now() - UBBans[key] > 60 * 1000) {
+			delete UBBans[key];
+			let HUBVC = await guild.channels.cache.find(channel => channel.id == config.HUBvcChannelID)
+			await HUBVC.permissionOverwrites.delete(key)
+		}
+	});
+	await db.put('tempHUBBans',UBBans)
+	if (Object.keys(UBBans).length === 0) return
+	setTimeout(cleanHUB_Timeban, 1000 * 5)
+}
+
+function sleep(ms) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
+
+async function RemoveVTChannels2(UserID, VCID) {
+
+	delete removeTimeouts2[UserID]
+	delete removeTimeouts[UserID]
+	//await sleep(5000);
+	let VC = await guild.channels.fetch(VCID)
+
+	if (VC.members.size == 0) {
+		if (typeof VC !== 'undefined') VC.delete().catch(() => { console.log('VC delete error') })
+		await db.del(`tempVcIdKey_${UserID}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempmsgIdKey_${UserID}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempTimestampKey_${UserID}`).catch(err => { console.log('kv del error!') })
+
+	} else {
+
+		let newUser = guild.members.cache.find(user => user.id == VC.members.keys().next().value)
+		let Controlmsg = await VC.messages.fetch(`${removeTimeoutsMsg[UserID]}`)
+		let VCPermissions = await VC.permissionsFor(config.DefaultRoleID).serialize()
+		Controlmsg.edit(await CreateControlMsg(newUser.id, newUser.user.username, VCPermissions))
+
+		await db.del(`tempVcIdKey_${UserID}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempmsgIdKey_${UserID}`).catch(err => { console.log('kv del error!') })
+		await db.del(`tempTimestampKey_${UserID}`).catch(err => { console.log('kv del error!') })
+
+		await db.put(`tempVcIdKey_${newUser.id}`, VCID).catch(err => { console.log('kv save error!') })
+		await db.put(`tempmsgIdKey_${newUser.id}`, Controlmsg.id).catch(err => { console.log('kv save error!') })
+		await db.put(`tempTimestampKey_${newUser.id}`, Date.now() / 1000).catch(err => { console.log('kv save error!') })
+
+		let ownerNew_Embed = template_ownerNew_Embed
+		ownerNew_Embed.data.description = template_ownerNew_Embed.data.description
+			.replace('$user', `<@${newUser.id}>`)
+		ownerNew_Embed.data.description = template_ownerNew_Embed.data.description
+			.replace('$command', `</${VC_control_command.name}:${VC_control_command.id}>`)
+
+		await VC.send({ content: `<@${newUser.id}>`, embeds: [ownerNew_Embed] })
+		//await interaction.update({ content: `OK. GoodBye ${user}.`, components: [] });
+
+		/// 如果想要自動更改名子 請取下下方註解
+		//await VC.setName(`${newUser.nickname ? newUser.nickname : newUser.user.username}'s VC`).catch(err => { console.log('kv save error!') })
+		return
+	}
+
 }
 
 async function RemoveVTChannels(UserID, VCID) {
@@ -216,6 +370,7 @@ client.on("interactionCreate", async (interaction) => {
 	if (interaction.isRoleSelectMenu() || interaction.isUserSelectMenu()) {
 		if (interaction.customId == "menu_whitelist_member" || interaction.customId == "menu_whitelist_role") {
 			//whitelist_Embed.setDescription(".....")
+			let whitelist_Embed = template_whitelist_Embed
 			await interaction.update({ ephemeral: true, components: [], content: "", embeds: [whitelist_Embed] })
 
 
@@ -226,7 +381,7 @@ client.on("interactionCreate", async (interaction) => {
 				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
 				//console.log(VCPermissions)
 				if (!VCPermissions.ViewChannel) {
-					await VC.permissionOverwrites.create(wrole.id, { ViewChannel: true })
+					await VC.permissionOverwrites.create(wrole.id, { ViewChannel: true, Connect: true })
 				} else {
 					await VC.permissionOverwrites.delete(wrole.id)
 				}
@@ -238,7 +393,7 @@ client.on("interactionCreate", async (interaction) => {
 				//console.log(typeof(VCPermissions.VIEW_CHANNEL))
 				//console.log(VCPermissions)
 				if (!VCPermissions.ViewChannel) {
-					await VC.permissionOverwrites.create(wUserid.id, { ViewChannel: true })
+					await VC.permissionOverwrites.create(wUserid.id, { ViewChannel: true, Connect: true })
 				} else {
 					await VC.permissionOverwrites.delete(wUserid.id)
 				}
@@ -260,12 +415,13 @@ client.on("interactionCreate", async (interaction) => {
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_whitelist_member')
-				.setPlaceholder('選擇使用者')
+				.setPlaceholder('Pick one or more users')
+
 
 			const roleselectmenu = new RoleSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_whitelist_role')
-				.setPlaceholder('選擇身分組')
+				.setPlaceholder('Pick one or more roles')
 
 			const row1 = new ActionRowBuilder()
 				.addComponents(userselectmenu)
@@ -309,6 +465,7 @@ client.on("interactionCreate", async (interaction) => {
 					str1_member += `<@${value.id}>\n`
 				}
 			})
+			let banlist_Embed = template_banlist_Embed
 			banlist_Embed.setFields([
 				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
 				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
@@ -317,12 +474,12 @@ client.on("interactionCreate", async (interaction) => {
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_banlist_member')
-				.setPlaceholder('選擇使用者')
+				.setPlaceholder('Pick one or more users')
 
 			const roleselectmenu = new RoleSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_banlist_role')
-				.setPlaceholder('選擇身分組')
+				.setPlaceholder('Pick one or more roles')
 
 			const row1 = new ActionRowBuilder()
 				.addComponents(userselectmenu)
@@ -346,7 +503,7 @@ client.on("interactionCreate", async (interaction) => {
 			let newUser = guild.members.cache.find(user => user.id == interaction.values[0])
 			//console.log(`${newUser.nickname?newUser.nickname:newUser.user.username}'s VC`)
 
-			await VC.permissionOverwrites.edit(user.id, { VIEW_CHANNEL: null })
+			//await VC.permissionOverwrites.edit(user.id, { VIEW_CHANNEL: null })
 
 			let Controlmsg = await VC.messages.fetch(`${tempmsgid}`)
 			let VCPermissions = await VC.permissionsFor(config.DefaultRoleID).serialize()
@@ -396,7 +553,7 @@ client.on("interactionCreate", async (interaction) => {
 			let inputstr = interaction.fields.getTextInputValue('_value')
 
 			await VC.setName(inputstr)
-			return interaction.editReply({ content: `OK. VC name is set to ${inputstr}.\n好的，已將名子更改為${inputstr}.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
+			return interaction.editReply({ content: `OK. VC name is change to ${inputstr}.\n好的，已將名子更改為${inputstr}.`, ephemeral: true }).catch(err => { VC.send(`Something is wrong. Please try again.\nError catch: \n\`\`\` ${err}\n\`\`\``) })
 
 		}
 
@@ -482,6 +639,7 @@ client.on("interactionCreate", async (interaction) => {
 					str1_member += `<@${value.id}>\n`
 				}
 			})
+			let banlist_Embed = template_banlist_Embed
 			banlist_Embed.setFields([
 				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
 				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
@@ -490,12 +648,12 @@ client.on("interactionCreate", async (interaction) => {
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_banlist_member')
-				.setPlaceholder('選擇使用者')
+				.setPlaceholder('Pick one or more users')
 
 			const roleselectmenu = new RoleSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_banlist_role')
-				.setPlaceholder('選擇身分組')
+				.setPlaceholder('Pick one or more roles')
 
 			const row1 = new ActionRowBuilder()
 				.addComponents(userselectmenu)
@@ -594,7 +752,7 @@ client.on("interactionCreate", async (interaction) => {
 			let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
 			if (removeTimeouts[user.id]) return
 			if (removeTimeouts2[user.id]) {
-				let cmsg = await Vc.send({ embeds: [CancelPreDelete_Embed] })
+				let cmsg = await Vc.send({ embeds: [template_CancelPreDelete_Embed] })
 				setTimeout(RemoveMsg, 5000, cmsg)
 				let Controlmsg = await Vc.messages.fetch(`${removeTimeoutsMsg2[user.id]}`)
 				clearTimeout(removeTimeouts2[user.id])
@@ -604,7 +762,12 @@ client.on("interactionCreate", async (interaction) => {
 
 			} else {
 
-				predelete_Embed.setDescription(`房主決定將<#${tempVcId}>刪除。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 10}:R> 刪除。 \n如要取消，請再次按下DeleteVC。`)
+				//predelete_Embed.setDescription(`房主決定將<#${tempVcId}>刪除。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 10}:R> 刪除。 \n如要取消，請再次按下DeleteVC。`)
+				let predelete_Embed = template_predelete_Embed
+				predelete_Embed.data.description = predelete_Embed.data.description
+					.replace('$tempVcId', `<#${tempVcId}>`)
+				predelete_Embed.data.description = predelete_Embed.data.description
+					.replace('$timeLeft', `<t:${Math.floor(Date.now() / 1000) + 10}:R>`)
 
 				let msg = await Vc.send({ embeds: [predelete_Embed] })
 				let tout = setTimeout(RemoveVTChannels, 10000, user.id, tempVcId)
@@ -625,7 +788,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			var options = []
 			options.push({
-				label: "自動",
+				label: "Auto",
 				value: "null",
 				default: !VC.rtcRegion,
 			})
@@ -660,6 +823,7 @@ client.on("interactionCreate", async (interaction) => {
 					str1_member += `<@${value.id}>\n`
 				}
 			})
+			let whitelist_Embed = template_whitelist_Embed
 			whitelist_Embed.setFields([
 				{ name: 'Roles', value: `${str1_role != "" ? str1_role : 'none'}`, inline: true },
 				{ name: 'Members', value: `${str1_member != "" ? str1_member : 'none'}`, inline: true }
@@ -668,12 +832,12 @@ client.on("interactionCreate", async (interaction) => {
 			const userselectmenu = new UserSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_whitelist_member')
-				.setPlaceholder('選擇使用者')
+				.setPlaceholder('Pick one or more users')
 
 			const roleselectmenu = new RoleSelectMenuBuilder()
 				.setMaxValues(1)
 				.setCustomId('menu_whitelist_role')
-				.setPlaceholder('選擇身分組')
+				.setPlaceholder('Pick one or more roles')
 
 			const row1 = new ActionRowBuilder()
 				.addComponents(userselectmenu)
@@ -687,27 +851,40 @@ client.on("interactionCreate", async (interaction) => {
 		if (interaction.commandName == "vc-fix") {
 			await interaction.deferReply()
 			if (!config.owners.includes(user.id)) return
+			await db.del('tempHUBBans').catch()
+			let HUBVC = await guild.channels.cache.find(channel => channel.id == config.HUBvcChannelID)
+			HUBVC.permissionOverwrites.set([])
+			.then(updatedChannel => {
+				console.log('權限覆蓋已成功清空');
+			})
+			.catch(error => {
+				console.error('清空權限覆蓋時出錯：', error);
+			});
 			for await (const key of db.keys()) {
 				if (key.startsWith('tempVcIdKey_')) {
 					//console.log(key)
 					let uid = key.replace('tempVcIdKey_', '')
 					let tempVcId = await db.get(`tempVcIdKey_${uid}`).catch(err => { }) //= await kvs1.get('tempVcIdKey_'+userid);
 					let Vc = await guild.channels.cache.find(channel => channel.id == tempVcId)
-					adminDeleteEmbed.setDescription(`頻道將於 <t:${Math.floor(Date.now() / 1000) + 10}:R> 刪除。`)
+					//adminDeleteEmbed.setDescription(`頻道將於 $timeLeft 刪除。`)
+					let adminDeleteEmbed = template_adminDeleteEmbed
+					adminDeleteEmbed.data.description = adminDeleteEmbed.data.description
+						.replace('$timeLeft', `<t:${Math.floor(Date.now() / 1000) + 10}:R>`)
+
 					Vc.send({ content: `<@${uid}>`, embeds: [adminDeleteEmbed] })
 					setTimeout(RemoveVTChannels, 10000, uid, tempVcId)
 				}
 			}
-			return await interaction.editReply({ content: 'OK. 自爆啟動.', ephemeral: true })
+			return await interaction.editReply({ content: 'OK. Clear database.', ephemeral: true })
 		}
 		else if (interaction.commandName == "vc-hubmsg") {
 			await interaction.deferReply()
-			createHubEmbed.setAuthor({
+			template_createHubEmbed.setAuthor({
 				name: (await guild.fetchOwner()).displayName,
 				iconURL: (await guild.fetchOwner()).avatarURL()
 			})
 
-			return interaction.editReply({ embeds: [createHubEmbed] })
+			return interaction.editReply({ embeds: [template_createHubEmbed] })
 		}
 		else if (interaction.commandName == "vc-control") {
 			if (tempVcId != textchannel.id) {
@@ -809,8 +986,9 @@ async function CreateControlMsg(UserID, userName, Permissinos = { "ViewChannel":
 
 	let buttonRow3 = new ActionRowBuilder()
 		.addComponents([button8, button5, button14])
+	let controlsEmbed = template_controlsEmbed
 	controlsEmbed.setAuthor({
-		name: `${userName} 的包廂`,
+		name: `${userName}'s VoiceChannel`,
 		iconURL: `${client.users.cache.find(user => user.id == UserID).avatarURL()}`
 	})
 

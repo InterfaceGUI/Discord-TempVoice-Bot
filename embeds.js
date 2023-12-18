@@ -1,21 +1,34 @@
 const { Client, PermissionsBitField, Permissions, TextInputComponent, MessageSelectMenu, UserSelectMenuBuilder, GatewayIntentBits, SlashCommandBuilder, PermissionFlagsBits, ChannelType, RoleSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, EmbedBuilder } = require('discord.js')
 const { config } = require('./config')
 
+
+/*---------------------------------------------------------------------------------------------------------
+ * The BOT was created by lars. I hope those who use this BOT will keep the flooter part.
+ * The Author can be changed at will. If there are any improvements needed, please open a Pullrequest on Github.
+ * Thank you.
+ */
 const flooter = {
-    "text": "TempVCs by Larshagrid#2620 | ver 2023.5.31",
+    "text": "TempVCs by Larshagrid | ver 2023.12.18",
     "iconURL": "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
+}
+//----------------------------------------------------------------------------------------------------------
+
+const Author = {
+    name: "拉斯的私人語音包廂助理",
+    iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
 }
 
 const HubEmbed = new EmbedBuilder()
     .setTitle(`臨時私人語音聊天`)
     .setColor(0x00B9FF)
     .setDescription(
-        `加入 <#${config.HUBvcChannelID}> 來創建您自己的Temp VC，您將成為房主。 預設為隱藏，除非手動點選按鈕開啟全線!`,
+        `加入 <#${config.HUBvcChannelID}> 來創建您自己的Temp VC，您將成為房主。 預設為顯示，除非手動點選按鈕開啟權限!`,
     )
     .setFooter(flooter)
 
 const AdminForceDelete = new EmbedBuilder()
-    .setTitle(`管理員以使用強制清除指令!`)
+    .setTitle(`管理員以使用修復指令!`)
+    .setDescription(`頻道將於 $timeLeft 刪除。`)
     .setColor(0xe80000)
     .setFooter(flooter)
 
@@ -28,53 +41,56 @@ const consoleembed = new EmbedBuilder()
 const Whitelisttembed = new EmbedBuilder()
     .setTitle('白名單清單')
     .setColor(0xaf40de)
-    .setAuthor({
-        name: "拉斯的私人語音包廂助理",
-        iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
-    })
+    .setAuthor(Author)
 
 const banliste = new EmbedBuilder()
     .setTitle('封鎖清單')
     .setColor(0xaf40de)
-    .setAuthor({
-        name: "拉斯的私人語音包廂助理",
-        iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
-    })
+    .setAuthor(Author)
 
 const predelete_Cancel = new EmbedBuilder()
     .setTitle("刪除已取消!")
     .setDescription(`排定的刪除程序已取消!`)
     .setColor(0x02cf21)
-    .setAuthor({
-        name: "拉斯的私人語音包廂助理",
-        iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
-    })
+    .setAuthor(Author)
 
 const predelete = new EmbedBuilder()
     .setTitle("已排定刪除!")
+    .setDescription(`房主決定將 $tempVcId 刪除。 \n頻道將於 $timeLeft 刪除。 \n如要取消，請再次按下DeleteVC按鈕。`)
     .setColor(0xff0000)
-    .setAuthor({
-        name: "拉斯的私人語音包廂助理",
-        iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
-    })
+    .setAuthor(Author)
 
 const ownerLeave = new EmbedBuilder()
     .setTitle("房主已離開語音包廂")
-    //.setDescription(`房主已離開 <#${tempVcId}>。 \n頻道將於 <t:${Math.floor(Date.now() / 1000) + 180}:R> 刪除。 \n如要取消，請重新加入語音頻道。`)
+    .setDescription(`房主已離開 $tempVcId。 \n頻道將於 $timeLeft 刪除。 \n如要取消，請重新加入語音頻道。`)
     .setColor(0x00B9FF)
     .setFooter(flooter)
-    .setAuthor({
-        name: "拉斯的私人語音包廂助理",
-        iconURL: "https://cdn.discordapp.com/attachments/920732721981038712/986987686751506512/-1.jpg"
-    })
+    .setAuthor(Author)
+const ownerLeavegivenext = new EmbedBuilder()
+    .setTitle("房主已離開語音包廂")
+    .setDescription(`房主已離開 $tempVcId。 \n房主將於 $timeLeft 賦予下一位用戶，若無人將自動刪除。 \n如要取消，請重新加入語音頻道。`)
+    .setColor(0x00B9FF)
+    .setFooter(flooter)
+    .setAuthor(Author)
+
+const NewOwner = new EmbedBuilder()
+    .setTitle("新房主!")
+    .setDescription(`前個房主已離開 3 分鐘。 \n此頻道以自動延順房主給: $user 。 \n\n如找不到控制台，請使用 $command `)
+    .setColor(0x00B9FF)
+    .setFooter(flooter)
+    .setAuthor(Author)
+
+
 module.exports = {
     embedFlooter: flooter,
-    createHubEmbed: HubEmbed,
-    adminDeleteEmbed: AdminForceDelete,
-    controlsEmbed: consoleembed,
-    whitelist_Embed: Whitelisttembed,
-    banlist_Embed: banliste,
-    CancelPreDelete_Embed: predelete_Cancel,
-    predelete_Embed: predelete,
-    ownerLeave_Embed: ownerLeave
+    template_createHubEmbed: HubEmbed,
+    template_adminDeleteEmbed: AdminForceDelete,
+    template_controlsEmbed: consoleembed,
+    template_whitelist_Embed: Whitelisttembed,
+    template_banlist_Embed: banliste,
+    template_CancelPreDelete_Embed: predelete_Cancel,
+    template_predelete_Embed: predelete,
+    template_ownerLeave_Embed: ownerLeave,
+    template_ownerLeaveNext_Embed: ownerLeavegivenext,
+    template_ownerNew_Embed: NewOwner,
 }

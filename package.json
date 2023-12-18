@@ -26,9 +26,9 @@
   },
   "homepage": "https://github.com/InterfaceGUI/DiscordTempVCs",
   "dependencies": {
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "discord-api-types": "^0.37.43",
-    "discord.js": "^14.11.0",
+    "@discordjs/rest": "^2.1.0",
+    "discord-api-types": "^0.37.61",
+    "discord.js": "^14.11.1",
     "level": "^8.0.0"
   }
 }
