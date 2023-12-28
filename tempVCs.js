@@ -58,11 +58,11 @@ client.on('ready', async () => {
 		}]
 	})
 	*/
-	cleanHUB_Timeban()
+	
 	RTCRegions = await client.fetchVoiceRegions()
 	guild = await client.guilds.cache.get(config.guild);
-	await guild.members.fetch().then(/*console.log*/).catch(/*console.error*/);
-	await guild.roles.fetch().then(/*console.log*/).catch(/*console.error*/);
+	await guild.members.fetch()
+	await guild.roles.fetch()
 
 	//Registering Slash
 	if (config.enable_slash) {
@@ -104,6 +104,7 @@ client.on('ready', async () => {
 		}
 
 	}
+	cleanHUB_Timeban()
 
 })
 
@@ -198,6 +199,8 @@ client.on('voiceStateUpdate', async (oldMember, newMember) => {
 	}
 
 })
+
+
 async function RemoveMsg(msg) {
 
 	await msg.delete().catch(() => { })
@@ -208,25 +211,25 @@ async function MoveUser(userid, Member) {
 	//下次更新需添加 冷卻時間 預防進進出出
 	let HUBVC = await guild.channels.cache.find(channel => channel.id == config.HUBvcChannelID)
 	await HUBVC.permissionOverwrites.create(userid, { Connect: false })
-	
+
 	//await db.put(`tempHUBBan_${userid}`, Date.now() / 1000).catch()
 
 	let newVCid = await CreatVTChannels(userid);
 	let VC = await guild.channels.cache.find(channel => channel.id == newVCid)
 
-	Member.setChannel(newVCid).then(async ()=>{
-		
+	Member.setChannel(newVCid).then(async () => {
+
 		await HUBVC.permissionOverwrites.delete(userid)
 
 	}).catch(async err => {
-		await Member.member.send(`系統無法將您移動到新的 語音頻道! 已經將保留的VC刪除! 60秒後才可再次創建新的語音頻道。`).cache()
-		var UBBans = await db.get(`tempHUBBans`).catch(async ()=>{
-			await db.put('tempHUBBans',{})
+		await Member.member.send(`系統無法將您移動到新的 語音頻道! 已經將保留的VC刪除! 60秒後才可再次創建新的語音頻道。\n\nThe system cannot move you to a new voice channel! The reserved VC has been deleted! A new voice channel can be created again after 60 seconds.`).catch(() => { console.log })
+		var UBBans = await db.get(`tempHUBBans`).catch(async () => {
+			await db.put('tempHUBBans', {})
 			return await db.get(`tempHUBBans`)
 		})
 		if (Object.keys(UBBans).length === 0) setTimeout(cleanHUB_Timeban, 1000 * 5)
 		UBBans[`${userid}`] = Date.now()
-		await db.put('tempHUBBans',UBBans)
+		await db.put('tempHUBBans', UBBans)
 
 		if (typeof VC !== 'undefined') VC.delete().catch(() => { console.log('VC delete error') })
 		await db.del(`tempVcIdKey_${userid}`).catch(err => { console.log('kv del error!') })
@@ -236,9 +239,9 @@ async function MoveUser(userid, Member) {
 	})
 }
 
-async function cleanHUB_Timeban(){
-	var UBBans = await db.get(`tempHUBBans`).catch(async ()=>{
-		await db.put('tempHUBBans',{})
+async function cleanHUB_Timeban() {
+	var UBBans = await db.get(`tempHUBBans`).catch(async () => {
+		await db.put('tempHUBBans', {})
 		return await db.get(`tempHUBBans`)
 	})
 	Object.keys(UBBans).forEach(async key => {
@@ -249,7 +252,7 @@ async function cleanHUB_Timeban(){
 			await HUBVC.permissionOverwrites.delete(key)
 		}
 	});
-	await db.put('tempHUBBans',UBBans)
+	await db.put('tempHUBBans', UBBans)
 	if (Object.keys(UBBans).length === 0) return
 	setTimeout(cleanHUB_Timeban, 1000 * 5)
 }
@@ -274,8 +277,8 @@ async function RemoveVTChannels2(UserID, VCID) {
 		await db.del(`tempTimestampKey_${UserID}`).catch(err => { console.log('kv del error!') })
 
 	} else {
-
-		let newUser = guild.members.cache.find(user => user.id == VC.members.keys().next().value)
+		
+		let newUser = VC.members.find(member => !member.user.bot)
 		let Controlmsg = await VC.messages.fetch(`${removeTimeoutsMsg[UserID]}`)
 		let VCPermissions = await VC.permissionsFor(config.DefaultRoleID).serialize()
 		Controlmsg.edit(await CreateControlMsg(newUser.id, newUser.user.username, VCPermissions))
@@ -854,12 +857,12 @@ client.on("interactionCreate", async (interaction) => {
 			await db.del('tempHUBBans').catch()
 			let HUBVC = await guild.channels.cache.find(channel => channel.id == config.HUBvcChannelID)
 			HUBVC.permissionOverwrites.set([])
-			.then(updatedChannel => {
-				console.log('權限覆蓋已成功清空');
-			})
-			.catch(error => {
-				console.error('清空權限覆蓋時出錯：', error);
-			});
+				.then(updatedChannel => {
+					console.log('權限覆蓋已成功清空');
+				})
+				.catch(error => {
+					console.error('清空權限覆蓋時出錯：', error);
+				});
 			for await (const key of db.keys()) {
 				if (key.startsWith('tempVcIdKey_')) {
 					//console.log(key)
@@ -995,4 +998,26 @@ async function CreateControlMsg(UserID, userName, Permissinos = { "ViewChannel":
 	return { content: `<@${UserID}>`, embeds: [controlsEmbed], components: [buttonRow1, buttonRow2, buttonRow3] }
 }
 
-client.login(config.token).catch(() => console.log('Invalid Token.Make Sure To Fill config.js or set ENV'))
+const banner = `
+==========================================	
+                                         
+_____               _____     _         
+|_   _|___ _____ ___|  |  |___|_|___ ___ 
+  | | | -_|     | . |  |  | . | |  _| -_|
+  |_| |___|_|_|_|  _|\\___/|___|_|___|___|
+                |_|                      
+                                         
+                   _____     _           
+                  | __  |___| |_         
+                  | __ -| . |  _|        
+                  |_____|___|_|          
+                                         
+                                                                                                                     
+Ver. 2023.12.18 made by Lars.
+
+==========================================				
+					`
+console.log(banner)
+client.login(config.token).catch(() => console.error('Invalid Token.Make Sure To Fill config.js or set ENV'))
+
+
