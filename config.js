@@ -1,4 +1,4 @@
-const config = {
+var config = {
     "token": "TOKEN",
     "guild": "SERVER ID",
     "HUBtxtChannelID": "leaveBlank",
