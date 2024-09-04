@@ -689,7 +689,7 @@ client.on("interactionCreate", async (interaction) => {
 					}
 				});
 
-				let msmComponents = new MessageSelectMenu()
+				let msmComponents = new StringSelectMenuBuilder()
 					.setCustomId('select_kick')
 					.setPlaceholder('Nothing selected')
 					.addOptions(options)
@@ -740,7 +740,7 @@ client.on("interactionCreate", async (interaction) => {
 					}
 				});
 
-				let msmComponents = new MessageSelectMenu()
+				let msmComponents = new StringSelectMenuBuilder()
 					.setCustomId('select_changeowner')
 					.setPlaceholder('Nothing selected')
 					.addOptions(options)
@@ -1013,7 +1013,7 @@ _____               _____     _
                   |_____|___|_|          
                                          
                                                                                                                      
-Ver. 2023.12.18 made by Lars.
+Ver. 2024.9.04 made by Lars.
 
 ==========================================				
 					`

@@ -1,6 +1,6 @@
 {
   "name": "discord_temp_vcs",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Discord Temp voice bot, that makes voice channel easy to create, manage, and change regions.",
   "main": "tempVCs.js",
   "scripts": {
